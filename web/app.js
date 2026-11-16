@@ -1,46 +1,62 @@
-/* Ruta Fito webapp: static trip data + live status from the Worker. */
+/* Ruta Fito webapp: static trip data + live status from the Worker. Icons: Tabler sprite in index.html. */
 (() => {
   const CFG = window.RUTA_CONFIG || {};
-  const ICON = { salida: '🚩', descanso: '🌳', nafta: '⛽', noche: '🛏️', destino: '🏁' };
-  const TYPE_LABEL = { salida: 'Salida', descanso: 'Descanso', nafta: 'Nafta', noche: 'Noche', destino: 'Destino' };
-  const DAY_COLOR = { d1: '#5eead4', d2: '#c4b5fd' };
+  const TYPE = {
+    salida: { icon: 'map-pin', label: 'Salida' },
+    descanso: { icon: 'trees', label: 'Descanso con verde' },
+    nafta: { icon: 'gas-station', label: 'Carga de nafta' },
+    noche: { icon: 'bed', label: 'Noche' },
+    destino: { icon: 'flag', label: 'Destino' },
+  };
+  const ACCENT = '#32d74b', MUTED = '#636366';
   const $ = (id) => document.getElementById(id);
+  const svg = (name, cls = 'icon') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const waze = (s) => `https://waze.com/ul?ll=${s.lat.toFixed(6)}%2C${s.lon.toFixed(6)}&navigate=yes`;
   const arDate = () => new Date(Date.now() - 3 * 3.6e6).toISOString().slice(0, 10);
+  const fmtDuration = (min) => `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
 
-  let trip, map, meMarker, follow = true, status = null, selectedDay = 'd1';
-  const stopMarkers = {};
+  let trip, map, meMarker, follow = true, status = null, selectedDay = 'd1', userPickedDay = false;
+  const stopMarkers = {}, routeLines = {};
 
   function toast(msg) {
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  function pinIcon(stop, isNext) {
+    const size = isNext ? 44 : 36;
+    return L.divIcon({ className: '', html: `<div class="pin${isNext ? ' is-next' : ''}">${svg(TYPE[stop.type].icon)}</div>`, iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -size / 2] });
   }
 
   function initMap() {
-    map = L.map('map', { zoomControl: true, attributionControl: true, preferCanvas: true });
-    // Esri dark gray canvas: free, no API key (attribution required).
+    map = L.map('map', { zoomControl: true, preferCanvas: false });
     const esri = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
-    L.tileLayer(esri + 'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16, attribution: 'Tiles &copy; Esri &middot; HERE, Garmin, &copy; OpenStreetMap',
-    }).addTo(map);
-    L.tileLayer(esri + 'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, pane: 'overlayPane', opacity: .9 }).addTo(map);
+    L.tileLayer(esri + 'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Tiles &copy; Esri &middot; HERE, Garmin, &copy; OpenStreetMap' }).addTo(map);
+    L.tileLayer(esri + 'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, pane: 'shadowPane' }).addTo(map);
     const all = [];
     for (const d of trip.days) {
       const latlngs = d.route.map(([lon, lat]) => [lat, lon]);
       all.push(...latlngs);
-      L.polyline(latlngs, { color: '#000', weight: 9, opacity: .55 }).addTo(map);
-      L.polyline(latlngs, { color: DAY_COLOR[d.id] || '#5eead4', weight: 5, opacity: .95 }).addTo(map);
+      routeLines[d.id] = L.polyline(latlngs, { color: MUTED, weight: 5, opacity: 1, lineCap: 'round' }).addTo(map);
       d.stops.forEach((s, i) => {
-        if (d.id === 'd2' && i === 0) return; // same point as d1 overnight
-        const icon = L.divIcon({ className: '', html: `<div class="pin t-${s.type}" aria-hidden="true">${ICON[s.type] || '📍'}</div>`, iconSize: [40, 40], iconAnchor: [20, 20] });
-        const m = L.marker([s.lat, s.lon], { icon, title: s.name, keyboard: true, alt: `${TYPE_LABEL[s.type]}: ${s.name}` })
-          .bindPopup(`<b>${s.name}</b><br>${d.label} · ${s.plannedArrival} · km ${Math.round(s.km)}<br>${s.description}<br><a href="${waze(s)}" target="_blank" rel="noopener">Abrir en Waze</a>`)
+        if (d.id !== trip.days[0].id && i === 0) return; // shared with the previous day's overnight stop
+        const m = L.marker([s.lat, s.lon], { icon: pinIcon(s, false), title: s.name, alt: `${TYPE[s.type].label}: ${s.name}`, keyboard: true })
+          .bindPopup(`<strong>${esc(s.name)}</strong>${esc(d.label)} · ${esc(s.plannedArrival)} · km ${Math.round(s.km)}<br>${esc(s.description)}<br><a href="${waze(s)}" target="_blank" rel="noopener">Abrir en Waze</a>`)
           .addTo(map);
-        stopMarkers[s.id] = m;
+        stopMarkers[s.id] = { marker: m, stop: s };
       });
     }
-    map.fitBounds(L.latLngBounds(all), { padding: [30, 30] });
+    map.fitBounds(L.latLngBounds(all), { padding: [32, 32] });
     map.on('dragstart', () => setFollow(false));
+    highlightRoute();
+  }
+
+  function highlightRoute() {
+    for (const [id, line] of Object.entries(routeLines)) {
+      line.setStyle({ color: id === selectedDay ? ACCENT : MUTED });
+      if (id === selectedDay) line.bringToFront();
+    }
   }
 
   function setFollow(v) {
@@ -49,95 +65,108 @@
   }
 
   function renderTabs() {
-    $('tabs').innerHTML = '';
+    const wrap = $('tabs'); wrap.innerHTML = '';
     for (const d of trip.days) {
       const b = document.createElement('button');
-      b.className = 'tab'; b.type = 'button'; b.role = 'tab'; b.dataset.day = d.id;
+      b.className = 'segment'; b.type = 'button'; b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(d.id === selectedDay));
       b.textContent = d.label;
-      b.onclick = () => { poll.userPicked = true; selectedDay = d.id; renderTabs(); renderStops(); };
-      $('tabs').appendChild(b);
+      b.onclick = () => { userPickedDay = true; selectedDay = d.id; renderTabs(); renderStops(); highlightRoute(); };
+      wrap.appendChild(b);
     }
   }
 
   function renderStops() {
     const d = trip.days.find((x) => x.id === selectedDay);
-    const h = Math.floor(d.driveMin / 60), m = d.driveMin % 60;
-    $('day-summary').textContent = `${d.totalKm} km · ${h} h ${m} min de manejo · salida ${d.departure} · llegada estimada ${d.plannedEnd}`;
+    $('day-stats').innerHTML = `
+      <div><dt>Distancia</dt><dd>${d.totalKm} km</dd></div>
+      <div><dt>Manejando</dt><dd>${fmtDuration(d.driveMin)}</dd></div>
+      <div><dt>Llegada estimada</dt><dd>${esc(d.plannedEnd)}</dd></div>`;
     const ol = $('stops'); ol.innerHTML = '';
-    const nextId = status?.next?.id;
-    const curDay = status?.dayId;
+    const nextId = currentNext()?.id;
     d.stops.forEach((s) => {
       const li = document.createElement('li');
-      const done = curDay === d.id && status?.hasPosition && s.km < status.km - 1;
-      li.className = `stop${done ? ' done' : ''}${s.id === nextId ? ' is-next' : ''}`;
+      const done = status?.hasPosition && status.dayId === d.id && s.km < status.km - 1;
+      const isNext = s.id === nextId;
+      li.className = `row${done ? ' is-done' : ''}`;
       li.id = s.id; li.tabIndex = 0;
+      const meta = [
+        isNext ? '<span class="is-next-label">Próxima</span>' : null,
+        esc(s.plannedArrival), `km ${Math.round(s.km)}`,
+        s.aca ? 'ACA' : null,
+        s.dwellMin ? `${s.dwellMin} min de parada` : null,
+        s.detourKm ? `desvío ${s.detourKm} km` : null,
+      ].filter(Boolean).join(' · ');
       li.innerHTML = `
-        <div class="badge t-${s.type}" aria-hidden="true">${ICON[s.type] || '📍'}</div>
+        <span class="type-tile${isNext ? ' is-next' : ''}" title="${TYPE[s.type].label}">${svg(TYPE[s.type].icon)}</span>
         <div>
-          <h2>${s.name}${s.aca ? '<span class="chip chip-aca">ACA</span>' : ''}${s.detourKm ? `<span class="chip chip-detour">desvío ${s.detourKm} km</span>` : ''}</h2>
-          <div class="meta">${TYPE_LABEL[s.type]} · ${s.plannedArrival} · km ${Math.round(s.km)}${s.legKm ? ` · tramo ${s.legKm} km / ${Math.floor(s.legMin / 60)}h${String(s.legMin % 60).padStart(2, '0')}` : ''}${s.dwellMin ? ` · parada ${s.dwellMin} min` : ''}</div>
-          <p>${s.description}</p>
-          <p class="fito"><span aria-hidden="true">🐕</span> ${s.fito}</p>
-          <div class="actions"><a class="btn" href="${waze(s)}" target="_blank" rel="noopener" aria-label="Abrir ${s.name} en Waze">🧭 Waze</a></div>
-        </div>`;
-      const focus = () => { setFollow(false); map.setView([s.lat, s.lon], 13); stopMarkers[s.id]?.openPopup(); };
+          <h3 class="row-title">${esc(s.name)}</h3>
+          <p class="row-meta">${meta}</p>
+          <p class="row-desc">${esc(s.description)}</p>
+          <p class="note">${svg('dog')}<span>${esc(s.fito)}</span></p>
+        </div>
+        <a class="icon-btn" href="${waze(s)}" target="_blank" rel="noopener" title="Abrir en Waze" aria-label="Abrir ${esc(s.name)} en Waze">${svg('brand-waze')}</a>`;
+      const focus = () => { setFollow(false); map.setView([s.lat, s.lon], 13); stopMarkers[s.id]?.marker.openPopup(); };
       li.addEventListener('click', (e) => { if (!e.target.closest('a')) focus(); });
-      li.addEventListener('keydown', (e) => { if (e.key === 'Enter') focus(); });
+      li.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.target.closest('a')) focus(); });
       ol.appendChild(li);
     });
   }
 
-  function planFallbackNext() {
-    // Without live position: show the first upcoming stop of today's (or the first) day.
+  // The stop to show as "next": live from the Worker, else today's first stop from the plan.
+  function currentNext() {
+    const all = trip.days.flatMap((d) => d.stops);
+    if (status?.hasPosition && status.next) return all.find((s) => s.id === status.next.id);
+    if (status?.arrived) { const d = trip.days.find((x) => x.id === status.dayId); return d.stops[d.stops.length - 1]; }
     const d = trip.days.find((x) => x.date === arDate()) || trip.days[0];
-    return { day: d, stop: d.stops[1] };
+    return d.stops[1];
   }
 
   function renderNext() {
-    const sig = $('signal');
-    let stop, km = '—', eta = '—', min = '—';
-    if (status?.hasPosition && status.next) {
-      stop = trip.days.flatMap((d) => d.stops).find((s) => s.id === status.next.id);
-      km = status.next.remainingKm; eta = status.next.etaClock; min = status.next.etaMin;
-    } else if (status?.arrived) {
-      const d = trip.days.find((x) => x.id === status.dayId); stop = d.stops[d.stops.length - 1];
-      km = 0; eta = '✔'; min = 0;
-    } else {
-      const f = planFallbackNext(); stop = f.stop; eta = stop.plannedArrival; km = Math.round(stop.km);
-    }
-    $('next-name').textContent = `${ICON[stop.type] || '📍'} ${stop.name}`;
+    const stop = currentNext();
+    let km = Math.round(stop.km), eta = stop.plannedArrival, min = '—';
+    if (status?.hasPosition && status.next) { km = status.next.remainingKm; eta = status.next.etaClock; min = status.next.etaMin; }
+    else if (status?.arrived) { km = 0; eta = 'Llegaron'; min = 0; }
+    $('next-icon').innerHTML = svg(TYPE[stop.type].icon); $('next-icon').classList.add('is-next');
+    $('next-name').textContent = stop.name;
+    $('next-type').textContent = [TYPE[stop.type].label, stop.aca ? 'ACA' : null, stop.detourKm ? `desvío ${stop.detourKm} km` : null].filter(Boolean).join(' · ');
     $('next-km').textContent = km; $('next-eta').textContent = eta; $('next-min').textContent = min;
     $('next-desc').textContent = stop.description;
-    $('next-fito').textContent = `🐕 ${stop.fito}`;
+    $('next-fito').textContent = stop.fito;
     $('next-waze').href = waze(stop);
     $('next-waze').setAttribute('aria-label', `Abrir ${stop.name} en Waze`);
-    for (const [id, m] of Object.entries(stopMarkers)) m.getElement()?.firstElementChild?.classList.toggle('next', id === stop.id);
+    for (const [id, { marker, stop: s }] of Object.entries(stopMarkers)) marker.setIcon(pinIcon(s, id === stop.id));
+    renderSignal();
+  }
 
-    if (!CFG.workerUrl) { sig.textContent = 'Modo plan (sin servidor)'; sig.className = 'signal warn'; }
-    else if (!status) { sig.textContent = 'Sin conexión al servidor'; sig.className = 'signal warn'; }
-    else if (!status.hasPosition) { sig.textContent = 'Esperando ubicación del bot'; sig.className = 'signal warn'; }
-    else if (status.position.ageMin > 20) { sig.textContent = `Sin señal hace ${status.position.ageMin} min`; sig.className = 'signal warn'; }
-    else { sig.textContent = `En vivo · km ${Math.round(status.km)} · ${status.speedKmh} km/h`; sig.className = 'signal ok'; }
+  function renderSignal() {
+    const el = $('signal'), txt = $('signal-text');
+    let cls = 'signal warn', msg;
+    if (!CFG.workerUrl) msg = 'Modo plan, sin avisos en vivo';
+    else if (!status) msg = 'No pude conectar con el servidor';
+    else if (!status.hasPosition) msg = 'Esperando tu ubicación del bot';
+    else if (status.position.ageMin > 20) msg = `Sin señal hace ${status.position.ageMin} min`;
+    else { cls = 'signal ok'; msg = `En vivo · km ${Math.round(status.km)} · ${status.speedKmh} km/h`; }
+    el.className = cls; txt.textContent = msg;
   }
 
   function renderMe() {
     if (!status?.hasPosition) return;
     const ll = [status.position.lat, status.position.lon];
-    const stale = status.position.ageMin > 20;
-    const icon = L.divIcon({ className: '', html: `<div class="me${stale ? ' stale' : ''}" aria-hidden="true"></div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+    const icon = L.divIcon({ className: '', html: `<div class="me${status.position.ageMin > 20 ? ' is-stale' : ''}"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
     if (!meMarker) meMarker = L.marker(ll, { icon, zIndexOffset: 1000, title: 'Estás acá', alt: 'Tu posición' }).addTo(map);
     else { meMarker.setLatLng(ll); meMarker.setIcon(icon); }
     if (follow) map.setView(ll, Math.max(map.getZoom(), 10));
   }
 
   async function poll() {
-    if (!CFG.workerUrl) { renderNext(); return; }
-    try {
-      const r = await fetch(`${CFG.workerUrl}/status`, { cache: 'no-store' });
-      status = await r.json();
-      if (status.hasPosition && status.dayId && status.dayId !== selectedDay && !poll.userPicked) { selectedDay = status.dayId; renderTabs(); }
-    } catch { status = null; }
+    if (CFG.workerUrl) {
+      try {
+        const r = await fetch(`${CFG.workerUrl}/status`, { cache: 'no-store' });
+        status = await r.json();
+        if (status.hasPosition && status.dayId && status.dayId !== selectedDay && !userPickedDay) { selectedDay = status.dayId; renderTabs(); highlightRoute(); }
+      } catch { status = null; }
+    }
     renderNext(); renderMe(); renderStops();
   }
 
@@ -149,12 +178,12 @@
     $('copy-waze').onclick = async () => {
       const d = trip.days.find((x) => x.id === selectedDay);
       const txt = d.stops.slice(1).map((s, i) => `${i + 1}. ${s.name} — ${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`).join('\n');
-      try { await navigator.clipboard.writeText(`${d.label}\n${txt}`); toast('Paradas copiadas: pegalas en Waze → Agregar parada'); }
-      catch { toast('No pude copiar; usá los botones Waze de cada parada'); }
+      try { await navigator.clipboard.writeText(`${d.label}\n${txt}`); toast('Listo, copié las paradas. Pegalas en Waze con "Agregar parada".'); }
+      catch { toast('No pude copiarlas. Usá el botón de Waze de cada parada.'); }
     };
     if (CFG.bot) $('bot-link').href = `https://t.me/${CFG.bot}`; else $('bot-link').hidden = true;
-    if (location.hash) { const s = document.querySelector(location.hash); s?.click(); }
+    if (location.hash) document.querySelector(location.hash)?.click();
     poll(); setInterval(poll, 60e3);
   }
-  main().catch((e) => { $('signal').textContent = 'Error cargando la ruta'; console.error(e); });
+  main().catch((e) => { $('signal-text').textContent = 'No pude cargar la ruta. Probá recargar.'; console.error(e); });
 })();
