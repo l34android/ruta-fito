@@ -178,7 +178,7 @@ p, dl, dd, ol { margin: 0; }
 .leaflet-control-attribution { background: rgba(0, 0, 0, .8) !important; color: var(--text-2) !important; font-size: var(--t-meta) !important; }
 .leaflet-control-attribution a { color: var(--text) !important; }
 .leaflet-bar { border: 1px solid var(--border-strong) !important; border-radius: var(--r-sm) !important; overflow: hidden; }
-.leaflet-bar a { background: var(--surface-1) !important; color: var(--text) !important; border-color: var(--border) !important; width: var(--tap) !important; height: var(--tap) !important; line-height: var(--tap) !important; font-size: 20px !important; }
+.leaflet-bar a { background: var(--surface-1) !important; color: var(--text) !important; border-color: var(--border) !important; width: var(--tap) !important; height: var(--tap) !important; line-height: var(--tap) !important; font-size: 20px !important; font-weight: var(--w-medium) !important; }
 
 .toast {
   position: fixed; left: 50%; bottom: var(--s6); transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
