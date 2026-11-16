@@ -74,7 +74,7 @@ jobs:
             --data-urlencode 'allowed_updates=["message","edited_message"]' | head -c 300; echo
           curl -sf "https://api.telegram.org/bot${TG_TOKEN}/setMyCommands" \
             -H 'Content-Type: application/json' \
-            -d '{"commands":[{"command":"estado","description":"Dónde estoy y próxima parada"},{"command":"plan","description":"Plan de los dos días"},{"command":"ruta","description":"Abrir el mapa"}]}' | head -c 200; echo
+            -d '{"commands":[{"command":"estado","description":"Dónde estoy y próxima parada"},{"command":"plan","description":"Plan de los dos días"},{"command":"ruta","description":"Abrir el mapa"},{"command":"compartir","description":"Link para la familia"},{"command":"cargue","description":"Anotar que cargué nafta"},{"command":"familia","description":"Usar este grupo para avisos (en el grupo)"}]}' | head -c 200; echo
           echo "Health:"; sleep 5; curl -s "${WORKER_URL}/health" | head -c 400; echo
 
       - uses: actions/configure-pages@v5

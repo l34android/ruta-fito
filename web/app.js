@@ -14,6 +14,8 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const waze = (s) => `https://waze.com/ul?ll=${s.lat.toFixed(6)}%2C${s.lon.toFixed(6)}&navigate=yes`;
   const arDate = () => new Date(Date.now() - 3 * 3.6e6).toISOString().slice(0, 10);
+  const clock = (ts) => { const d = new Date(ts - 3 * 3.6e6); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
+  const planFor = (dayId) => status?.plans?.find((p) => p.dayId === dayId);
   const fmtDuration = (min) => `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
 
   let trip, map, meMarker, follow = true, status = null, selectedDay = 'd1', userPickedDay = false;
@@ -80,20 +82,30 @@
     $('day-stats').innerHTML = `
       <div><dt>Distancia</dt><dd>${d.totalKm} km</dd></div>
       <div><dt>Manejando</dt><dd>${fmtDuration(d.driveMin)}</dd></div>
-      <div><dt>Llegada estimada</dt><dd>${esc(d.plannedEnd)}</dd></div>`;
+      <div><dt>${planFor(d.id)?.live ? 'Llegada en vivo' : 'Llegada estimada'}</dt><dd>${planFor(d.id)?.live ? clock(planFor(d.id).endEta) : esc(d.plannedEnd)}</dd></div>`;
     const ol = $('stops'); ol.innerHTML = '';
     const nextId = currentNext()?.id;
-    d.stops.forEach((s) => {
+    const plan = planFor(d.id);
+    d.stops.forEach((s, i) => {
       const li = document.createElement('li');
-      const done = status?.hasPosition && status.dayId === d.id && s.km < status.km - 1;
+      const ps = plan?.live ? plan.stops[i] : null;
+      const state = ps?.state || (status?.hasPosition && status.dayId === d.id && s.km < status.km - 1 ? 'visited' : 'pending');
       const isNext = s.id === nextId;
-      li.className = `row${done ? ' is-done' : ''}`;
+      li.className = `row${state === 'visited' || state === 'skipped' ? ' is-done' : ''}`;
       li.id = s.id; li.tabIndex = 0;
+      let when = esc(s.plannedArrival);
+      if (ps?.state === 'visited' && ps.arrivedAt) when = `Llegaste ${clock(ps.arrivedAt)}${ps.leftAt ? ` · ${Math.round((ps.leftAt - ps.arrivedAt) / 60e3)} min` : ''}`;
+      else if (ps?.state === 'here') when = `Estás acá desde ${clock(ps.arrivedAt)}`;
+      else if (ps?.state === 'skipped') when = 'Salteada';
+      else if (ps?.eta) {
+        const diff = Math.round((ps.eta - ps.planned) / 60e3);
+        when = `${clock(ps.eta)}${Math.abs(diff) >= 5 ? ` (${diff > 0 ? '+' : '−'}${Math.abs(diff)} min)` : ''}`;
+      }
       const meta = [
         isNext ? '<span class="is-next-label">Próxima</span>' : null,
-        esc(s.plannedArrival), `km ${Math.round(s.km)}`,
-        s.aca ? 'ACA' : null,
-        s.dwellMin ? `${s.dwellMin} min de parada` : null,
+        when, `km ${Math.round(s.km)}`,
+        s.fuel ? 'Cargar nafta' : (s.aca ? 'ACA' : null),
+        s.dwellMin && state !== 'visited' ? `${s.dwellMin} min de parada` : null,
         s.detourKm ? `desvío ${s.detourKm} km` : null,
       ].filter(Boolean).join(' · ');
       li.innerHTML = `
@@ -135,7 +147,35 @@
     $('next-waze').href = waze(stop);
     $('next-waze').setAttribute('aria-label', `Abrir ${stop.name} en Waze`);
     for (const [id, { marker, stop: s }] of Object.entries(stopMarkers)) marker.setIcon(pinIcon(s, id === stop.id));
+    renderInsights();
     renderSignal();
+  }
+
+  // Plan vivo: end-of-day arrival vs plan, nightfall and fuel.
+  function renderInsights() {
+    const ul = $('insights');
+    const items = [];
+    const plan = status?.dayId ? planFor(status.dayId) : null;
+    const day = plan ? trip.days.find((d) => d.id === plan.dayId) : null;
+    if (plan?.live && day) {
+      const end = day.stops[day.stops.length - 1].name.replace(/ \(destino\)$/, '');
+      const d = plan.delayMin;
+      const vs = d >= 5 ? `${d} min más tarde que el plan` : d <= -5 ? `${-d} min antes que el plan` : 'en horario';
+      items.push({ icon: 'clock', warn: false, text: `Llegás a ${end} ${clock(plan.endEta)}, ${vs}.` });
+      items.push(plan.afterDark
+        ? { icon: 'moon', warn: true, text: `Oscurece ${clock(plan.sunset)}: llegarías de noche. Acortá alguna parada larga.` }
+        : { icon: 'sunset', warn: false, text: `Oscurece ${clock(plan.sunset)}. Llegás con luz.` });
+    }
+    const f = status?.fuel;
+    if (status?.hasPosition && f?.next) {
+      const warn = f.risk !== 'ok' || f.mustFillAtNext;
+      const text = f.risk === 'high' ? `Nafta: ${f.sinceKm} km desde la última carga. Cargá en la primera estación que veas.`
+        : warn ? `Nafta: llegás a ${f.next.name} con ${f.next.atKm} km desde la última carga. Cargá ahí sí o sí.`
+        : `Nafta: ${f.sinceKm} km desde la última carga. Próxima: ${f.next.name}, en ${f.next.inKm} km.`;
+      items.push({ icon: 'gas-station', warn, text });
+    }
+    ul.innerHTML = items.map((i) => `<li class="insight${i.warn ? ' is-warn' : ''}">${svg(i.warn ? 'alert-triangle' : i.icon)}<span>${esc(i.text)}</span></li>`).join('');
+    ul.hidden = !items.length;
   }
 
   function renderSignal() {

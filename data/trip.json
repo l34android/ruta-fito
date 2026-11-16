@@ -23,7 +23,8 @@
           "fito": "Paseo corto antes de subir, agua a mano.",
           "dwellMin": 0,
           "aca": false,
-          "detourKm": 0
+          "detourKm": 0,
+          "fuel": false
         },
         {
           "id": "d1-gorchs",
@@ -35,7 +36,8 @@
           "fito": "Espacio abierto alrededor de la estación: paseo con correa, ojo con los camiones.",
           "dwellMin": 20,
           "aca": true,
-          "detourKm": 0
+          "detourKm": 0,
+          "fuel": false
         },
         {
           "id": "d1-azul",
@@ -47,7 +49,8 @@
           "fito": "Mucho verde y sombra, arroyo para refrescarse. La mejor parada del día para estirar en serio.",
           "dwellMin": 45,
           "aca": false,
-          "detourKm": 3
+          "detourKm": 3,
+          "fuel": false
         },
         {
           "id": "d1-olavarria",
@@ -59,7 +62,8 @@
           "fito": "Si hace falta, el Parque Mitre queda a ~2 km.",
           "dwellMin": 15,
           "aca": true,
-          "detourKm": 2
+          "detourKm": 2,
+          "fuel": true
         },
         {
           "id": "d1-villaventana",
@@ -71,7 +75,8 @@
           "fito": "Bosque, arroyo Belisario y calles de tierra: paseo largo al llegar.",
           "dwellMin": 0,
           "aca": false,
-          "detourKm": 2
+          "detourKm": 2,
+          "fuel": false
         }
       ]
     },
@@ -91,7 +96,8 @@
           "fito": "Paseo antes de salir.",
           "dwellMin": 0,
           "aca": false,
-          "detourKm": 0
+          "detourKm": 0,
+          "fuel": false
         },
         {
           "id": "d2-bahia",
@@ -103,7 +109,8 @@
           "fito": "Parada corta, solo para estirar.",
           "dwellMin": 15,
           "aca": true,
-          "detourKm": 1
+          "detourKm": 1,
+          "fuel": true
         },
         {
           "id": "d2-riocolorado",
@@ -115,7 +122,8 @@
           "fito": "Costa del río a metros: agua y sombra. Buena parada para almorzar.",
           "dwellMin": 60,
           "aca": true,
-          "detourKm": 0
+          "detourKm": 0,
+          "fuel": true
         },
         {
           "id": "d2-choele",
@@ -127,7 +135,8 @@
           "fito": "Paseo con correa alrededor de la estación; el río Negro queda cerca si hay tiempo.",
           "dwellMin": 20,
           "aca": true,
-          "detourKm": 0
+          "detourKm": 0,
+          "fuel": true
         },
         {
           "id": "d2-regina",
@@ -139,7 +148,8 @@
           "fito": "Isla arbolada con playa de río: el mejor lugar verde del día.",
           "dwellMin": 25,
           "aca": false,
-          "detourKm": 4
+          "detourKm": 4,
+          "fuel": false
         },
         {
           "id": "d2-destino",
@@ -151,7 +161,8 @@
           "fito": "Embalse Arroyito a la vista.",
           "dwellMin": 0,
           "aca": false,
-          "detourKm": 0
+          "detourKm": 0,
+          "fuel": false
         }
       ]
     }

@@ -207,3 +207,16 @@ p, dl, dd, ol { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Plan vivo insights (inside the next-stop card) */
+.insights { list-style: none; margin: 0; padding: var(--s3) 0 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--s2); }
+.insight { display: flex; gap: var(--s2); align-items: flex-start; font-size: var(--t-secondary); color: var(--text-2); }
+.insight .icon { margin-top: 1px; }
+.insight.is-warn { color: var(--warning); }
+
+/* Seguinos (family view) */
+.timeline .row { grid-template-columns: 40px minmax(0, 1fr); cursor: default; }
+.timeline .row.is-here .type-tile { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.timeline .row.is-visited .type-tile { color: var(--accent); }
+.empty-state { padding: var(--s6); text-align: center; color: var(--text-2); }
+.empty-state h1 { color: var(--text); font-size: var(--t-h2); margin-bottom: var(--s2); }
