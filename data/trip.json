@@ -1,0 +1,159 @@
+{
+  "title": "Ruta Fito · Berisso → Arroyito",
+  "vehicle": "Ford Ranger 2.0 biturbo XLT 2023 · autonomía ~600 km",
+  "fuelRuleKm": 450,
+  "destination": {
+    "lat": -39.07339,
+    "lon": -68.56653
+  },
+  "days": [
+    {
+      "id": "d1",
+      "date": "2026-11-18",
+      "label": "Día 1 · Mié 18",
+      "departure": "10:30",
+      "stops": [
+        {
+          "id": "d1-salida",
+          "type": "salida",
+          "name": "Berisso",
+          "lat": -34.86886,
+          "lon": -57.88287,
+          "description": "Salida con tanque lleno. Antes de arrancar: compartí la ubicación en tiempo real con el bot (\"hasta que la desactive\").",
+          "fito": "Paseo corto antes de subir, agua a mano.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0
+        },
+        {
+          "id": "d1-gorchs",
+          "type": "descanso",
+          "name": "ACA Gorchs (RN3 km 143)",
+          "lat": -35.70025,
+          "lon": -58.88974,
+          "description": "Clásica estación ACA sobre la RN3. Baño, café y algo rápido para comer.",
+          "fito": "Espacio abierto alrededor de la estación: paseo con correa, ojo con los camiones.",
+          "dwellMin": 20,
+          "aca": true,
+          "detourKm": 0
+        },
+        {
+          "id": "d1-azul",
+          "type": "descanso",
+          "name": "Balneario Municipal de Azul",
+          "lat": -36.79619,
+          "lon": -59.88442,
+          "description": "Gran parque arbolado sobre el arroyo Azul, a unos minutos de la RN3. Ideal para almorzar.",
+          "fito": "Mucho verde y sombra, arroyo para refrescarse. La mejor parada del día para estirar en serio.",
+          "dwellMin": 45,
+          "aca": false,
+          "detourKm": 3
+        },
+        {
+          "id": "d1-olavarria",
+          "type": "nafta",
+          "name": "ACA Olavarría",
+          "lat": -36.9097,
+          "lon": -60.31249,
+          "description": "Cargá tanque lleno: después de Olavarría no hay estaciones en ~200 km hasta Villa Ventana.",
+          "fito": "Si hace falta, el Parque Mitre queda a ~2 km.",
+          "dwellMin": 15,
+          "aca": true,
+          "detourKm": 2
+        },
+        {
+          "id": "d1-villaventana",
+          "type": "noche",
+          "name": "Villa Ventana",
+          "lat": -38.07857,
+          "lon": -61.92812,
+          "description": "Noche en cabaña que acepte perros grandes (confirmar por teléfono: Fito pesa +40 kg). Villa tranquila, al pie de las sierras.",
+          "fito": "Bosque, arroyo Belisario y calles de tierra: paseo largo al llegar.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 2
+        }
+      ]
+    },
+    {
+      "id": "d2",
+      "date": "2026-11-19",
+      "label": "Día 2 · Jue 19",
+      "departure": "09:00",
+      "stops": [
+        {
+          "id": "d2-salida",
+          "type": "salida",
+          "name": "Villa Ventana",
+          "lat": -38.07857,
+          "lon": -61.92812,
+          "description": "Salida temprano: es el día largo (~700 km). Volvé a compartir la ubicación en tiempo real con el bot.",
+          "fito": "Paseo antes de salir.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0
+        },
+        {
+          "id": "d2-bahia",
+          "type": "nafta",
+          "name": "ACA Bahía Blanca (Villa Bordeu)",
+          "lat": -38.70085,
+          "lon": -62.33326,
+          "description": "Carga rápida sobre el Camino Parque Sesquicentenario, sin entrar al centro.",
+          "fito": "Parada corta, solo para estirar.",
+          "dwellMin": 15,
+          "aca": true,
+          "detourKm": 1
+        },
+        {
+          "id": "d2-riocolorado",
+          "type": "descanso",
+          "name": "ACA Río Colorado (RN22 km 859)",
+          "lat": -38.97338,
+          "lon": -64.10458,
+          "description": "Nafta, almuerzo y descanso largo junto al puente y el río Colorado.",
+          "fito": "Costa del río a metros: agua y sombra. Buena parada para almorzar.",
+          "dwellMin": 60,
+          "aca": true,
+          "detourKm": 0
+        },
+        {
+          "id": "d2-choele",
+          "type": "nafta",
+          "name": "ACA Choele Choel (RN22 km 997)",
+          "lat": -39.28162,
+          "lon": -65.6663,
+          "description": "Cargá de nuevo: desde acá quedan ~300 km. Estación y motel ACA con confitería.",
+          "fito": "Paseo con correa alrededor de la estación; el río Negro queda cerca si hay tiempo.",
+          "dwellMin": 20,
+          "aca": true,
+          "detourKm": 0
+        },
+        {
+          "id": "d2-regina",
+          "type": "descanso",
+          "name": "Isla 58 · Villa Regina",
+          "lat": -39.16392,
+          "lon": -67.10608,
+          "description": "Balneario municipal en una isla del río Negro, a ~4 km de la RN22.",
+          "fito": "Isla arbolada con playa de río: el mejor lugar verde del día.",
+          "dwellMin": 25,
+          "aca": false,
+          "detourKm": 4
+        },
+        {
+          "id": "d2-destino",
+          "type": "destino",
+          "name": "Arroyito (destino)",
+          "lat": -39.07339,
+          "lon": -68.56653,
+          "description": "Llegada. ¡Buen viaje!",
+          "fito": "Embalse Arroyito a la vista.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0
+        }
+      ]
+    }
+  ]
+}

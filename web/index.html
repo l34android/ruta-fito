@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="color-scheme" content="dark">
+  <title>Ruta Fito · Berisso → Arroyito</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐕</text></svg>">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#panel">Saltar al panel de paradas</a>
+  <header class="top">
+    <div class="brand"><span aria-hidden="true">🐕</span> <strong>Ruta Fito</strong> <span class="muted" id="trip-sub">Berisso → Arroyito</span></div>
+    <div class="signal" id="signal" role="status" aria-live="polite">Cargando…</div>
+  </header>
+
+  <main class="layout">
+    <section class="map-wrap" aria-label="Mapa de la ruta">
+      <div id="map"></div>
+      <button class="fab" id="follow" type="button" aria-pressed="true" title="Seguir mi posición">
+        <span aria-hidden="true">◎</span><span class="fab-label">Seguir</span>
+      </button>
+    </section>
+
+    <aside class="panel" id="panel" aria-label="Próxima parada y lista de paradas">
+      <article class="next" id="next" aria-live="polite" aria-atomic="true">
+        <p class="eyebrow">Próxima parada</p>
+        <h1 class="next-name" id="next-name">—</h1>
+        <div class="next-meta">
+          <div class="big-stat"><span class="num" id="next-km">—</span><span class="unit">km</span></div>
+          <div class="big-stat"><span class="num" id="next-eta">—</span><span class="unit">llegada</span></div>
+          <div class="big-stat"><span class="num" id="next-min">—</span><span class="unit">min</span></div>
+        </div>
+        <p class="next-desc" id="next-desc"></p>
+        <p class="next-fito" id="next-fito"></p>
+        <a class="btn btn-waze" id="next-waze" href="#" target="_blank" rel="noopener">
+          <span aria-hidden="true">🧭</span> Abrir en Waze
+        </a>
+      </article>
+
+      <div class="tabs" role="tablist" aria-label="Días de viaje" id="tabs"></div>
+      <div id="day-summary" class="day-summary"></div>
+      <ol class="stops" id="stops"></ol>
+
+      <div class="tools">
+        <button class="btn btn-ghost" id="copy-waze" type="button"><span aria-hidden="true">📋</span> Copiar paradas para Waze</button>
+        <a class="btn btn-ghost" id="bot-link" href="#" target="_blank" rel="noopener"><span aria-hidden="true">✈️</span> Abrir bot de Telegram</a>
+      </div>
+      <p class="legend" aria-label="Referencias">
+        <span><i class="dot t-descanso"></i>Descanso verde</span>
+        <span><i class="dot t-nafta"></i>Nafta ACA</span>
+        <span><i class="dot t-noche"></i>Noche</span>
+        <span><i class="dot t-destino"></i>Destino</span>
+      </p>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
