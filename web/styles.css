@@ -150,3 +150,13 @@ body { display: flex; flex-direction: column; -webkit-font-smoothing: antialiase
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* Narrow phones: compact header, keep the map button clear of the attribution */
+@media (max-width: 560px) {
+  .top { padding: 8px 12px; }
+  .brand { font-size: 1rem; flex-wrap: nowrap; }
+  #trip-sub { display: none; }
+  .signal { font-size: .8rem; padding: 5px 10px; }
+  .fab { bottom: 40px; }
+  .leaflet-control-attribution { font-size: 10px; max-width: 70%; }
+}
