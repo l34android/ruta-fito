@@ -72,6 +72,13 @@ const webDir = path.join(root, 'dist/web');
 await fs.rm(webDir, { recursive: true, force: true });
 await fs.cp(path.join(root, 'web'), webDir, { recursive: true });
 await fs.writeFile(path.join(webDir, 'trip.built.json'), JSON.stringify(built));
+// Cache-bust assets so a redeploy shows up immediately on the phone/tablet.
+const v = Date.now().toString(36);
+const idx = path.join(webDir, 'index.html');
+await fs.writeFile(idx, (await fs.readFile(idx, 'utf8'))
+  .replace('href="styles.css"', `href="styles.css?v=${v}"`)
+  .replace('src="config.js"', `src="config.js?v=${v}"`)
+  .replace('src="app.js"', `src="app.js?v=${v}"`));
 const workerUrl = process.env.WORKER_URL || '';
 await fs.writeFile(path.join(webDir, 'config.js'), `window.RUTA_CONFIG = ${JSON.stringify({ workerUrl, bot: process.env.BOT_USERNAME || '' })};\n`);
 await fs.writeFile(path.join(root, 'worker/src/trip.built.js'), `export default ${JSON.stringify(built)};\n`);
