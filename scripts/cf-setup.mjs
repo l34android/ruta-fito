@@ -76,6 +76,8 @@ PUBLIC_URL = "${previewUrl}"
 ` : `name = "ruta-fito"
 main = "src/index.js"
 compatibility_date = "2026-11-01"
+# Lets this Worker fetch the preview Worker on the same workers.dev subdomain (otherwise error 1042).
+compatibility_flags = ["global_fetch_strictly_public"]
 workers_dev = true
 
 [triggers]
