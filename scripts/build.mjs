@@ -85,4 +85,16 @@ for (const page of ['index.html', 'seguir.html']) {
 const workerUrl = process.env.WORKER_URL || '';
 await fs.writeFile(path.join(webDir, 'config.js'), `window.RUTA_CONFIG = ${JSON.stringify({ workerUrl, bot: process.env.BOT_USERNAME || '' })};\n`);
 await fs.writeFile(path.join(root, 'worker/src/trip.built.js'), `export default ${JSON.stringify(built)};\n`);
-console.log('Built dist/web and worker/src/trip.built.js');
+// 8-bit preview app (served as static assets by the preview Worker).
+const prevDir = path.join(root, 'dist/preview');
+await fs.rm(prevDir, { recursive: true, force: true });
+try {
+  await fs.cp(path.join(root, 'preview'), prevDir, { recursive: true });
+  await fs.writeFile(path.join(prevDir, 'trip.built.json'), JSON.stringify(built));
+  const pf = path.join(prevDir, 'index.html');
+  await fs.writeFile(pf, (await fs.readFile(pf, 'utf8'))
+    .replace('href="style.css"', `href="style.css?v=${v}"`)
+    .replace('src="sprites.js"', `src="sprites.js?v=${v}"`)
+    .replace('src="app.js"', `src="app.js?v=${v}"`));
+} catch (e) { if (e.code !== 'ENOENT') throw e; }
+console.log('Built dist/web, dist/preview and worker/src/trip.built.js');

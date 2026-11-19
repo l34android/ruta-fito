@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b1a">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Lean y Fito · Modo arcade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map" aria-label="Mapa del viaje"></div>
+
+  <!-- HUD: Street-Fighter style bars -->
+  <header class="hud" aria-live="polite">
+    <div class="hud-side hud-p1">
+      <div class="hud-label"><span class="hud-portrait" id="p1-face" aria-hidden="true"></span><span>LEAN&nbsp;&amp;&nbsp;FITO</span></div>
+      <div class="bar" role="progressbar" aria-label="Avance del día" aria-valuemin="0" aria-valuemax="100" id="bar-day"><span class="bar-fill" id="bar-day-fill"></span></div>
+      <p class="hud-sub" id="day-sub">DÍA 1</p>
+    </div>
+    <div class="timer" aria-label="Minutos a la próxima parada"><span id="timer">--</span><small>MIN</small></div>
+    <div class="hud-side hud-p2">
+      <div class="hud-label hud-label--right"><span id="next-name">PRÓXIMA</span><span class="hud-portrait" id="next-icon" aria-hidden="true"></span></div>
+      <div class="bar bar--right" role="progressbar" aria-label="Distancia a la próxima parada" aria-valuemin="0" aria-valuemax="100" id="bar-next"><span class="bar-fill" id="bar-next-fill"></span></div>
+      <p class="hud-sub hud-sub--right" id="next-sub">—</p>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" aria-hidden="true"></div>
+  <p class="signal" id="signal" role="status"></p>
+
+  <!-- Sheets -->
+  <section class="sheet" id="sheet-ruta" role="dialog" aria-modal="true" aria-labelledby="ruta-title" hidden>
+    <div class="sheet-head"><h2 id="ruta-title">RUTA</h2><button class="px-btn px-btn--ghost sheet-close" type="button" data-close>CERRAR</button></div>
+    <div class="days" role="tablist" aria-label="Día de viaje" id="days"></div>
+    <ol class="stops" id="stops"></ol>
+  </section>
+
+  <section class="sheet" id="sheet-sala" role="dialog" aria-modal="true" aria-labelledby="sala-title" hidden>
+    <div class="sheet-head"><h2 id="sala-title">SALA</h2><button class="px-btn px-btn--ghost sheet-close" type="button" data-close>CERRAR</button></div>
+    <ol class="chat" id="chat" aria-live="polite" aria-relevant="additions"></ol>
+    <form class="composer" id="composer" autocomplete="off">
+      <div class="field" id="name-field">
+        <label for="name">Tu nombre</label>
+        <input id="name" name="name" maxlength="30" required>
+      </div>
+      <div class="field field--msg">
+        <label for="text">Mensaje <span class="who" id="who"></span></label>
+        <div class="row">
+          <textarea id="text" name="text" maxlength="500" rows="2" required></textarea>
+          <button class="px-btn" type="submit" id="send">ENVIAR</button>
+        </div>
+      </div>
+      <p class="form-error" id="form-error" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- iOS-style tab bar -->
+  <nav class="tabbar" aria-label="Secciones">
+    <button class="tab" type="button" data-tab="mapa" aria-current="page"><span class="tab-ico" data-ico="tab_map"></span><span>MAPA</span></button>
+    <button class="tab" type="button" data-tab="ruta" aria-haspopup="dialog"><span class="tab-ico" data-ico="tab_list"></span><span>RUTA</span></button>
+    <button class="tab" type="button" data-tab="sala" aria-haspopup="dialog"><span class="tab-ico" data-ico="tab_chat"></span><span>SALA</span><span class="badge" id="badge" hidden>0</span></button>
+  </nav>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="sprites.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
