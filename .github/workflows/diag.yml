@@ -4,21 +4,23 @@ on:
     branches: ['diag/**']
 permissions:
   contents: write
+  actions: read
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check endpoints after the fix
+      - name: Read migration output of the last preview run
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           exec > >(tee diag-output.txt) 2>&1
-          B=https://ruta-fito-4e6efe.workers.dev
-          for u in "https://ruta-fito.ruta-fito-4e6efe.workers.dev/status" "https://ruta-fito.ruta-fito-4e6efe.workers.dev/public?k=x" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/api/public?k=x" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/nueva/"; do
-            curl -s -o b.txt -w "%{http_code} $u\n" "$u"; head -c 160 b.txt | tr -d '\n'; echo
-          done
+          RID=$(gh run list -R ${{ github.repository }} --workflow preview.yml -L 1 --json databaseId,conclusion,headSha -q '.[0] | "\(.databaseId) \(.conclusion) \(.headSha)"')
+          echo "run: $RID"
+          gh run view -R ${{ github.repository }} ${RID%% *} --log | grep -E "KV [a-z]+:|import:|Nothing read|Migrate|##\[error\]" | sed -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' | head -40
       - name: Save output to the branch
         if: always()
         run: |
           sed -i -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' diag-output.txt
           git config user.name diag-bot; git config user.email diag@users.noreply.github.com
-          git add diag-output.txt && git commit -m "diag output 2 [skip ci]" && git push
+          git add diag-output.txt && git commit -m "diag output 3 [skip ci]" && git push
