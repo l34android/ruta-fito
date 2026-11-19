@@ -30,10 +30,19 @@ async function tg(env, method, body) {
 }
 const send = (env, chatId, text, extra = {}) => tg(env, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, ...extra });
 
+// Per-isolate memory: avoids storage calls for the frequent live-location edits and repeated polls.
+export const mem = { owner: null, lastPosTs: 0, cache: new Map() };
+const STATE_KEYS = ['owner', 'track', 'visits', 'fuel', 'flags', 'notified', 'share', 'family'];
+
 export async function loadState(env) {
-  const [owner, track, visits, fuel, flags, notified, share, family] = await Promise.all(
-    ['owner', 'track', 'visits', 'fuel', 'flags', 'notified', 'share', 'family'].map((k) => getJSON(env, k)),
-  );
+  let vals;
+  if (env.STATE.getMany) { // Durable Object store: one call for every key
+    const got = await env.STATE.getMany(STATE_KEYS);
+    vals = STATE_KEYS.map((k) => (got[k] == null ? null : JSON.parse(got[k])));
+  } else vals = await Promise.all(STATE_KEYS.map((k) => getJSON(env, k)));
+  const [owner, track, visits, fuel, flags, notified, share, family] = vals;
+  if (owner) mem.owner = owner;
+  if (track?.pos?.ts) mem.lastPosTs = Math.max(mem.lastPosTs, track.pos.ts);
   return { owner, track: track || {}, visits: visits || {}, fuel: fuel || { odo: 0, stopId: 'start' }, flags: flags || {}, notified: notified || {}, share, family };
 }
 
@@ -158,6 +167,7 @@ async function onLocation(env, st, msg) {
     }
   }
   st.track = { pos, history, near };
+  mem.lastPosTs = ts;
   writes.push(putJSON(env, 'track', st.track));
 
   if (!st.flags[`plan-${day.id}`]) {
@@ -179,6 +189,8 @@ async function handleUpdate(env, update) {
   const isPrivate = msg.chat.type === 'private';
   const cmd = (msg.text || '').trim().split(/\s+/)[0].split('@')[0].toLowerCase();
   const arg = (msg.text || '').trim().split(/\s+/)[1]?.toLowerCase();
+  // Fast path: live-location edits arrive every few seconds; we only keep one every 90 s.
+  if (msg.location && isPrivate && mem.owner === chatId && (msg.edit_date || msg.date) * 1000 - mem.lastPosTs < POS_WRITE_EVERY_MS) return;
   const st = await loadState(env);
 
   if (isPrivate && cmd === '/start') {
@@ -310,13 +322,24 @@ export async function runCron(env, now = Date.now()) {
   return out;
 }
 
+// Short per-isolate cache for polled endpoints (many viewers polling every 30–60 s).
+const CACHE_MS = 15e3;
+async function cachedRaw(key, fn) {
+  const hit = mem.cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.value;
+  const value = await fn();
+  mem.cache.set(key, { at: Date.now(), value });
+  return value;
+}
+const cached = async (key, fn) => json(await cachedRaw(key, fn));
+
 // Copy the owner's private updates to the preview Worker. Fire-and-forget: it never
 // affects the production response, and any failure is swallowed.
 export async function forwardToPreview(env, update) {
   try {
     const msg = update.message || update.edited_message;
     if (!msg?.chat || msg.chat.type !== 'private') return false;
-    const owner = await getJSON(env, 'owner');
+    const owner = mem.owner || await getJSON(env, 'owner');
     if (!owner || msg.chat.id !== owner) return false;
     await fetch(`${env.PREVIEW_URL}/tg`, {
       method: 'POST',
@@ -359,15 +382,27 @@ export default {
       return new Response('ok');
     }
     if (url.pathname === '/status') {
-      const st = await loadState(env);
-      const view = buildView(st, Date.now());
-      return json({ ...view.status, plans: view.plans, fuel: view.fuel });
+      return cached('status', async () => {
+        const st = await loadState(env);
+        const view = buildView(st, Date.now());
+        return { ...view.status, plans: view.plans, fuel: view.fuel };
+      });
     }
     if (url.pathname === '/public') {
-      const st = await loadState(env);
       const k = url.searchParams.get('k');
-      if (!k || !st.share?.token || k !== st.share.token) return json({ error: 'Link no válido o vencido' }, 404);
-      return json(publicView(st, buildView(st, Date.now()), Date.now()));
+      const r = await cachedRaw('public', async () => { const st = await loadState(env); return { st, body: publicView(st, buildView(st, Date.now()), Date.now()) }; });
+      if (!k || !r.st.share?.token || k !== r.st.share.token) return json({ error: 'Link no válido o vencido' }, 404);
+      return json(r.body);
+    }
+    if (url.pathname === '/admin/import' && request.method === 'POST') { // one-time migration of KV data into the store
+      if (!env.FORWARD_SECRET || request.headers.get('X-Ruta-Admin') !== env.FORWARD_SECRET) return new Response('forbidden', { status: 403 });
+      const body = await request.json();
+      const keys = Object.keys(body).filter((k) => STATE_KEYS.includes(k) && typeof body[k] === 'string');
+      const existing = env.STATE.getMany ? await env.STATE.getMany(keys) : {};
+      const done = [];
+      for (const k of keys) if (existing[k] == null) { await env.STATE.put(k, body[k]); done.push(k); } // never overwrite newer state
+      mem.cache.clear(); mem.owner = null;
+      return json({ imported: done });
     }
     if (url.pathname === '/health') return json({ ok: true, builtAt: trip.builtAt, days: days.map((d) => ({ id: d.id, km: d.totalKm, stops: d.stops.length })) });
     return new Response('Ruta Fito', { headers: cors });

@@ -82,7 +82,7 @@ test('departure, stop alert, arrival and family updates on day 1', async () => {
 });
 
 test('/status exposes the live plan; /public needs the token and hides home', async () => {
-  const realNow = Date.now; Date.now = () => T(12, 25);
+  const realNow = Date.now; Date.now = () => T(12, 25); worker.mem.cache.clear();
   const st = await (await worker.default.fetch(new Request('https://w/status'), env)).json();
   const p1 = st.plans.find((p) => p.dayId === 'd1');
   assert.equal(p1.stops.find((x) => x.id === 'd1-gorchs').state, 'here');
@@ -101,6 +101,7 @@ test('/public hides the position near home', async () => {
   const s0 = stop('d1-salida');
   kv.set('track', JSON.stringify({ pos: { lat: s0.lat + 0.01, lon: s0.lon, ts: T(10, 0) }, history: [] }));
   const token = JSON.parse(kv.get('share')).token;
+  worker.mem.cache.clear();
   const pub = await (await worker.default.fetch(new Request(`https://w/public?k=${token}`), env)).json();
   assert.equal(pub.position, null);
   assert.equal(pub.hiddenNearHome, true);

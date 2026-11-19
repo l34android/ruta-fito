@@ -67,6 +67,14 @@ jobs:
           printf '%s' "$WEBHOOK_SECRET" | npx --yes wrangler@3 secret put WEBHOOK_SECRET
           printf '%s' "$FORWARD_SECRET" | npx --yes wrangler@3 secret put FORWARD_SECRET
 
+      - name: Migrate KV state into the Durable Object store
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          KV_ID: ${{ steps.cf.outputs.kv_id }}
+          WORKER_URL: ${{ steps.cf.outputs.worker_url }}
+        run: sleep 5 && node scripts/migrate-kv.mjs
+
       - name: Register Telegram webhook
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
