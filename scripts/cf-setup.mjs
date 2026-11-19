@@ -35,7 +35,8 @@ if (!subdomain) {
   console.log('Created workers.dev subdomain', subdomain);
 }
 
-const title = 'ruta-fito-state';
+const PREVIEW = process.env.TARGET === 'preview';
+const title = PREVIEW ? 'ruta-fito-preview-state' : 'ruta-fito-state';
 const list = await cf('GET', `/accounts/${accountId}/storage/kv/namespaces?per_page=100`);
 if (!list.success) throw new Error('Cannot list KV namespaces: ' + JSON.stringify(list.errors));
 let ns = list.result.find((n) => n.title === title);
@@ -47,7 +48,32 @@ if (!ns) {
 }
 
 const pagesUrl = process.env.PAGES_URL || '';
-const toml = `name = "ruta-fito"
+const previewUrl = `https://ruta-fito-preview.${subdomain}.workers.dev`;
+const toml = PREVIEW ? `name = "ruta-fito-preview"
+main = "src/preview.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[assets]
+directory = "../dist/preview"
+binding = "ASSETS"
+
+[[kv_namespaces]]
+binding = "STATE"
+id = "${ns.id}"
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[vars]
+SILENT = "1"
+PUBLIC_URL = "${previewUrl}"
+` : `name = "ruta-fito"
 main = "src/index.js"
 compatibility_date = "2026-11-01"
 workers_dev = true
@@ -61,10 +87,11 @@ id = "${ns.id}"
 
 [vars]
 PAGES_URL = "${pagesUrl}"
+PREVIEW_URL = "${previewUrl}"
 `;
-await fs.writeFile(path.join(root, 'worker/wrangler.toml'), toml);
+await fs.writeFile(path.join(root, PREVIEW ? 'worker/wrangler.preview.toml' : 'worker/wrangler.toml'), toml);
 
-const workerUrl = `https://ruta-fito.${subdomain}.workers.dev`;
+const workerUrl = PREVIEW ? previewUrl : `https://ruta-fito.${subdomain}.workers.dev`;
 const out = process.env.GITHUB_OUTPUT;
 if (out) await fs.appendFile(out, `account_id=${accountId}\nworker_url=${workerUrl}\n`);
 console.log('Worker URL will be', workerUrl);

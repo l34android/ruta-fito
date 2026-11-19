@@ -39,6 +39,9 @@ jobs:
           S=$(printf '%s' "ruta-fito:$TG_TOKEN" | sha256sum | cut -c1-48)
           echo "::add-mask::$S"
           echo "WEBHOOK_SECRET=$S" >> "$GITHUB_ENV"
+          F=$(printf '%s' "ruta-fito-forward:$TG_TOKEN" | sha256sum | cut -c1-48)
+          echo "::add-mask::$F"
+          echo "FORWARD_SECRET=$F" >> "$GITHUB_ENV"
 
       - name: Cloudflare bootstrap (account, workers.dev, KV)
         id: cf
@@ -62,6 +65,7 @@ jobs:
           npx --yes wrangler@3 deploy
           printf '%s' "$TG_TOKEN" | npx --yes wrangler@3 secret put TG_TOKEN
           printf '%s' "$WEBHOOK_SECRET" | npx --yes wrangler@3 secret put WEBHOOK_SECRET
+          printf '%s' "$FORWARD_SECRET" | npx --yes wrangler@3 secret put FORWARD_SECRET
 
       - name: Register Telegram webhook
         env:
