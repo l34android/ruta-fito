@@ -125,7 +125,7 @@
       else if (live && st === 'visited' && ps.arrivedAt) when = `Pararon a las ${clock(ps.arrivedAt)}${ps.leftAt ? ` · ${Math.round((ps.leftAt - ps.arrivedAt) / 60e3)} min` : ''}`;
       else if (live && st === 'skipped') when = 'No pararon';
       else if (i === 0) when = `Salida ${d.departure}`;
-      else when = `${live ? 'Llegan' : 'Previsto'} ${clock(ps?.eta || ps?.planned)} · km ${Math.round(s.km)}`;
+      else when = `${live ? 'Llegan' : 'Previsto'} ${(ps?.eta || ps?.planned) ? clock(ps.eta || ps.planned) : s.plannedArrival} · km ${Math.round(s.km)}`;
       return `<li class="row${st === 'visited' ? ' is-visited' : ''}${st === 'visited' || st === 'skipped' ? ' is-done' : ''}" id="row-${s.id}">
         <span class="type-tile${st === 'next' || st === 'here' ? ' is-next' : ''}" title="${TYPE[s.type].label}">${svg(st === 'visited' ? 'circle-check' : TYPE[s.type].icon)}</span>
         <div><h3 class="row-title">${esc(clean(s.name))}</h3><p class="row-meta">${when}</p><p class="row-desc">${esc(s.description.split('. ')[0].replace(/\.$/, ''))}.</p></div></li>`;
