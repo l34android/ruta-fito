@@ -38,6 +38,8 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TARGET: preview
+          # SHA-256 of the existing family link token (the token itself never goes in the repo)
+          SHARE_SHA256: b6281e4d1fc3ffe7f79086e328528334ab35b5a75adf2feebc9781066cc24341
         run: node scripts/cf-setup.mjs
 
       - name: Build route and apps

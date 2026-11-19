@@ -81,6 +81,7 @@ new_sqlite_classes = ["Store"]
 [vars]
 SILENT = "1"
 PUBLIC_URL = "${previewUrl}"
+SHARE_SHA256 = "${process.env.SHARE_SHA256 || ''}"
 ` : `name = "ruta-fito"
 main = "src/main.js"
 compatibility_date = "2026-11-01"

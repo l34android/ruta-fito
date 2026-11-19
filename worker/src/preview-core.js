@@ -94,9 +94,17 @@ export async function handleForwarded(env, update, ownerId) {
 }
 
 // ───────── Public API (token-gated) ─────────
+async function sha256hex(s) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 async function authed(env, url) {
+  const k = url.searchParams.get('k');
   const share = await getJSON(env, 'share');
-  return !!(share?.token && url.searchParams.get('k') === share.token);
+  if (share?.token) return !!k && k === share.token;
+  // No link stored (e.g. lost in a storage migration): accept the known link by its hash and re-register it.
+  if (k && env.SHARE_SHA256 && (await sha256hex(k)) === env.SHARE_SHA256) { await putJSON(env, 'share', { token: k }); return true; }
+  return false;
 }
 
 async function photoProxy(env, fileId, ctx) {
