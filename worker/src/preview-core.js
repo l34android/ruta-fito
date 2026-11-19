@@ -100,10 +100,14 @@ async function sha256hex(s) {
 }
 async function authed(env, url) {
   const k = url.searchParams.get('k');
+  if (!k) return false;
   const share = await getJSON(env, 'share');
-  if (share?.token) return !!k && k === share.token;
-  // No link stored (e.g. lost in a storage migration): accept the known link by its hash and re-register it.
-  if (k && env.SHARE_SHA256 && (await sha256hex(k)) === env.SHARE_SHA256) { await putJSON(env, 'share', { token: k }); return true; }
+  if (share?.token && k === share.token) return true;
+  // The original family link (known only by its hash) is always valid, even if another link was generated later.
+  if (env.SHARE_SHA256 && (await sha256hex(k)) === env.SHARE_SHA256) {
+    if (!share?.token) await putJSON(env, 'share', { token: k });
+    return true;
+  }
   return false;
 }
 
@@ -137,6 +141,10 @@ export async function handleRequest(request, env, ctx) {
       for (const k of keys) if (existing[k] == null) { await env.STATE.put(k, body[k]); done.push(k); } // never overwrite newer state
       pmem.cache.clear();
       return json({ imported: done });
+    }
+    if (url.pathname === '/api/diag') { // no secrets: only whether things are configured
+      const share = await getJSON(env, 'share');
+      return json({ shareSet: !!share?.token, hashConfigured: !!env.SHARE_SHA256, store: !!env.STORE });
     }
     if (!url.pathname.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Ruta Fito 8-bit');
     if (!(await authed(env, url))) return json({ error: 'Link no válido o vencido' }, 404);

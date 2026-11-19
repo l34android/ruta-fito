@@ -126,3 +126,15 @@ test('a lost link is re-registered by its SHA-256, other tokens stay rejected', 
   assert.equal(JSON.parse(await e.STATE.get('share')).token, tok);
   assert.equal((await get('otro')).status, 404);
 });
+
+test('the original link keeps working even after a new one is generated', async () => {
+  const { storeAdapter, MemoryStore } = await import('../src/state.js');
+  const crypto = await import('node:crypto');
+  const tok = '51e61292e51647f7a5abcb14a47facf9';
+  const e = { ...env, STATE: storeAdapter(new MemoryStore(), null), SHARE_SHA256: crypto.createHash('sha256').update(tok).digest('hex') };
+  await e.STATE.put('share', JSON.stringify({ token: 'nuevo123' }));
+  const get = (k) => core.handleRequest(new Request(`https://p/api/chat?k=${k}`), e, { waitUntil() {} });
+  assert.equal((await get(tok)).status, 200);
+  assert.equal((await get('nuevo123')).status, 200);
+  assert.equal((await get('otro')).status, 404);
+});
