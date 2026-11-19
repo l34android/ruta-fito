@@ -1,0 +1,20 @@
+run: 44589464081 success [redacted]
+preview	Migrate KV state into the Durable Object store	﻿2026-11-19T18:36:15.1622116Z ##[group]Run node scripts/migrate-kv.mjs
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1622748Z ^[[36;1mnode scripts/migrate-kv.mjs^[[0m
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1671293Z shell: /usr/bin/bash -e {0}
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1671786Z env:
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1672445Z   FORWARD_SECRET: ***
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1673200Z   CLOUDFLARE_API_TOKEN: ***
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1673799Z   ACCOUNT_ID: [redacted]
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1674366Z   KV_ID: [redacted]
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1675131Z   WORKER_URL: https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.1675848Z ##[endgroup]
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.4179187Z KV owner: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.4856467Z KV track: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.5363169Z KV visits: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.5851877Z KV fuel: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.6589116Z KV flags: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.7170189Z KV notified: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.7612913Z KV share: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.8218719Z KV family: 429
+preview	Migrate KV state into the Durable Object store	2026-11-19T18:36:15.8219570Z Nothing read from KV (quota or empty); the Worker will migrate lazily later.
