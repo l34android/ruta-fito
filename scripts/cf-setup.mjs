@@ -74,7 +74,7 @@ new_sqlite_classes = ["Room"]
 SILENT = "1"
 PUBLIC_URL = "${previewUrl}"
 ` : `name = "ruta-fito"
-main = "src/index.js"
+main = "src/main.js"
 compatibility_date = "2026-11-01"
 # Lets this Worker fetch the preview Worker on the same workers.dev subdomain (otherwise error 1042).
 compatibility_flags = ["global_fetch_strictly_public"]
@@ -87,6 +87,14 @@ crons = ["*/15 * * * *"]
 binding = "STATE"
 id = "${ns.id}"
 
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Store"]
+
 [vars]
 PAGES_URL = "${pagesUrl}"
 PREVIEW_URL = "${previewUrl}"
@@ -95,5 +103,5 @@ await fs.writeFile(path.join(root, PREVIEW ? 'worker/wrangler.preview.toml' : 'w
 
 const workerUrl = PREVIEW ? previewUrl : `https://ruta-fito.${subdomain}.workers.dev`;
 const out = process.env.GITHUB_OUTPUT;
-if (out) await fs.appendFile(out, `account_id=${accountId}\nworker_url=${workerUrl}\n`);
+if (out) await fs.appendFile(out, `account_id=${accountId}\nworker_url=${workerUrl}\nkv_id=${ns.id}\n`);
 console.log('Worker URL will be', workerUrl);
