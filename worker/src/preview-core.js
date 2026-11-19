@@ -24,7 +24,7 @@ export const roomOf = (env) => env.ROOM.get(env.ROOM.idFromName('familia'));
 // ───────── Updates forwarded from production ─────────
 async function onLocation(env, st, msg, room) {
   const ts = (msg.edit_date || msg.date) * 1000;
-  if (st.track.pos && ts - st.track.pos.ts < POS_WRITE_EVERY_MS) return;
+  if (st.track.pos && ts - st.track.pos.ts < POS_WRITE_EVERY_MS) { pmem.lastPosTs = Math.max(pmem.lastPosTs, st.track.pos.ts); return; }
   const pos = { lat: msg.location.latitude, lon: msg.location.longitude, ts };
   const p = [pos.lon, pos.lat];
   const { day, proj } = pickDay(p, days, argentinaDate(ts));
@@ -51,14 +51,21 @@ async function onLocation(env, st, msg, room) {
       await room.add({ ts, author: 'Ruta', kind: 'event', text: `${day.label.toUpperCase()}: ¡salieron de ${day.stops[0].name}!` });
     }
   }
+  pmem.lastPosTs = ts;
   writes.push(putJSON(env, 'track', { pos, history, near }));
   await Promise.all(writes);
 }
 
+const pmem = { lastPosTs: 0, owner: null, cache: new Map() };
+export { pmem };
+
 export async function handleForwarded(env, update, ownerId) {
   const msg = update.message || update.edited_message;
   if (!msg?.chat || msg.chat.type !== 'private' || msg.chat.id !== ownerId) return { ignored: true };
-  if ((await getJSON(env, 'owner')) !== ownerId) await putJSON(env, 'owner', ownerId);
+  // Fast path: skip storage for live-location edits inside the 90 s window.
+  if (msg.location && (msg.edit_date || msg.date) * 1000 - pmem.lastPosTs < POS_WRITE_EVERY_MS) return { location: 'skipped' };
+  if (pmem.owner !== ownerId && (await getJSON(env, 'owner')) !== ownerId) await putJSON(env, 'owner', ownerId);
+  pmem.owner = ownerId;
   const st = await loadState(env);
   const room = roomOf(env);
   if (msg.location) { await onLocation(env, st, msg, room); return { location: true }; }
@@ -118,8 +125,12 @@ export async function handleRequest(request, env, ctx) {
     const room = roomOf(env);
 
     if (url.pathname === '/api/public') {
+      const hit = pmem.cache.get('public');
+      if (hit && Date.now() - hit.at < 15e3) return json(hit.body);
       const st = await loadState(env);
-      return json(publicView(st, buildView(st, Date.now()), Date.now()));
+      const body = publicView(st, buildView(st, Date.now()), Date.now());
+      pmem.cache.set('public', { at: Date.now(), body });
+      return json(body);
     }
     if (url.pathname === '/api/chat' && request.method === 'GET') {
       const after = Number(url.searchParams.get('after') || 0);

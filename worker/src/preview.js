@@ -2,6 +2,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import { makeLimiter, KEEP } from './chat.js';
 import { handleRequest } from './preview-core.js';
+import { storeAdapter } from './state.js';
+export { Store } from './store-do.js';
 
 export class Room extends DurableObject {
   constructor(ctx, env) {
@@ -21,4 +23,8 @@ export class Room extends DurableObject {
   allow(key) { return this.limiter(key); }
 }
 
-export default { fetch: handleRequest };
+const withStore = (env) => (env.STORE
+  ? { ...env, STATE: storeAdapter(env.STORE.get(env.STORE.idFromName('state')), env.STATE) }
+  : env);
+
+export default { fetch: (request, env, ctx) => handleRequest(request, withStore(env), ctx) };

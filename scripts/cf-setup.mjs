@@ -66,9 +66,17 @@ id = "${ns.id}"
 name = "ROOM"
 class_name = "Room"
 
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Store"]
 
 [vars]
 SILENT = "1"
