@@ -1,0 +1,25 @@
+44590124114 completed success 2026-11-19T18:39:28Z
+44589464081 completed success 2026-11-19T18:35:42Z
+preview	Derive forward secret from bot token	﻿2026-11-19T18:39:34.2205237Z ##[group]Run test -n "$TG_TOKEN" || { echo "::error::Falta el secreto TG_TOKEN"; exit 1; }
+preview	Derive forward secret from bot token	2026-11-19T18:39:34.2206741Z ^[[36;1mtest -n "$TG_TOKEN" || { echo "::error::Falta el secreto TG_TOKEN"; exit 1; }^[[0m
+preview	Cloudflare bootstrap (preview KV)	2026-11-19T18:39:34.2472522Z   SHARE_SHA256: [redacted]
+preview	Deploy preview Worker (assets + Durable Object)	﻿2026-11-19T18:39:35.9855904Z ##[group]Run npx --yes wrangler@3 deploy -c wrangler.preview.toml
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9856557Z ^[[36;1mnpx --yes wrangler@3 deploy -c wrangler.preview.toml^[[0m
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9857213Z ^[[36;1mprintf '%s' "$TG_TOKEN" | npx --yes wrangler@3 secret put TG_TOKEN -c wrangler.preview.toml^[[0m
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9857907Z ^[[36;1mprintf '%s' "$FORWARD_SECRET" | npx --yes wrangler@3 secret put FORWARD_SECRET -c wrangler.preview.toml^[[0m
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9858764Z ^[[36;1msleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/"^[[0m
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9894938Z shell: /usr/bin/bash -e {0}
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9895374Z env:
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9895997Z   FORWARD_SECRET: ***
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9896511Z   CLOUDFLARE_API_TOKEN: ***
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9896906Z   CLOUDFLARE_ACCOUNT_ID: [redacted]
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9897455Z   TG_TOKEN: ***
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:35.9897764Z ##[endgroup]
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:39.9786291Z npm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:40.0441385Z npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:45.4479515Z 
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:45.4481097Z  ⛅️ wrangler 3.114.17 (update available 4.165.0)
+preview	Deploy preview Worker (assets + Durable Object)	2026-11-19T18:39:45.4482025Z [redacted]
+sed: couldn't write 159 items to stdout: Broken pipe
+404 badkey
+{"error":"Link no válido o vencido"}
