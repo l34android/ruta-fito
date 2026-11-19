@@ -9,35 +9,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Tail Worker logs while hitting /status
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Check endpoints after the fix
         run: |
-          exec > >(tee -a diag-output.txt) 2>&1
-          ACC=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id')
-          export CLOUDFLARE_ACCOUNT_ID=$ACC
-          for W in ruta-fito ruta-fito-preview; do
-            echo "=== $W ==="
-            (timeout 40 npx --yes wrangler@3 tail $W --format pretty > tail-$W.log 2>&1 &)
-            sleep 15
-            SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts/$ACC/workers/subdomain | jq -r '.result.subdomain')
-            if [ "$W" = "ruta-fito" ]; then P=/status; else P="/api/public?k=x"; fi
-            for i in 1 2; do curl -s -o body.txt -w "HTTP %{http_code}\n" "https://$W.$SUB.workers.dev$P"; head -c 300 body.txt | tr -d '\n' | sed 's/<[^>]*>/ /g' | tr -s ' ' | head -c 300; echo; done
-            sleep 25
-            grep -v -i -E "token|secret|authorization" tail-$W.log | head -60
+          exec > >(tee diag-output.txt) 2>&1
+          B=https://ruta-fito-4e6efe.workers.dev
+          for u in "https://ruta-fito.ruta-fito-4e6efe.workers.dev/status" "https://ruta-fito.ruta-fito-4e6efe.workers.dev/public?k=x" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/api/public?k=x" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/nueva/"; do
+            curl -s -o b.txt -w "%{http_code} $u\n" "$u"; head -c 160 b.txt | tr -d '\n'; echo
           done
-      - name: KV operations today (GraphQL analytics)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          ACC=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id')
-          exec > >(tee -a diag-output.txt) 2>&1
-          TODAY=$(date -u +%Y-%m-%d)
-          Q="{\"query\":\"{ viewer { accounts(filter:{accountTag:\\\"$ACC\\\"}) { kvOperationsAdaptiveGroups(limit:20, filter:{date_geq:\\\"$TODAY\\\"}) { sum { requests } dimensions { actionType } } } } }\"}"
-          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" -d "$Q" https://api.cloudflare.com/client/v4/graphql | jq -c '.data.viewer.accounts[0].kvOperationsAdaptiveGroups // .errors'
       - name: Save output to the branch
         if: always()
         run: |
           sed -i -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' diag-output.txt
           git config user.name diag-bot; git config user.email diag@users.noreply.github.com
-          git add diag-output.txt && git commit -m "diag output [skip ci]" && git push
+          git add diag-output.txt && git commit -m "diag output 2 [skip ci]" && git push
