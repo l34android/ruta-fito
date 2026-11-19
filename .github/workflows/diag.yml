@@ -3,15 +3,17 @@ on:
   push:
     branches: ['diag/**']
 permissions:
-  contents: read
+  contents: write
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Tail Worker logs while hitting /status
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          exec > >(tee -a diag-output.txt) 2>&1
           ACC=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id')
           export CLOUDFLARE_ACCOUNT_ID=$ACC
           for W in ruta-fito ruta-fito-preview; do
@@ -29,6 +31,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           ACC=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id')
+          exec > >(tee -a diag-output.txt) 2>&1
           TODAY=$(date -u +%Y-%m-%d)
           Q="{\"query\":\"{ viewer { accounts(filter:{accountTag:\\\"$ACC\\\"}) { kvOperationsAdaptiveGroups(limit:20, filter:{date_geq:\\\"$TODAY\\\"}) { sum { requests } dimensions { actionType } } } } }\"}"
           curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" -d "$Q" https://api.cloudflare.com/client/v4/graphql | jq -c '.data.viewer.accounts[0].kvOperationsAdaptiveGroups // .errors'
+      - name: Save output to the branch
+        if: always()
+        run: |
+          sed -i -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' diag-output.txt
+          git config user.name diag-bot; git config user.email diag@users.noreply.github.com
+          git add diag-output.txt && git commit -m "diag output [skip ci]" && git push
