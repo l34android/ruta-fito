@@ -57,6 +57,7 @@ test('/prueba creates the link; API is token-gated', async () => {
   await fwd(priv({ text: '/prueba' }));
   const token = JSON.parse(kv.get('share')).token;
   assert.ok(sent[0].body.text.includes(`https://preview.example/?k=${token}`));
+  assert.ok(sent[0].body.text.includes(`https://preview.example/nueva/?k=${token}`));
   assert.equal((await api('/api/chat')).status, 404);
   assert.equal((await api(`/api/chat?k=${token}`)).status, 200);
 });

@@ -96,5 +96,10 @@ try {
     .replace('href="style.css"', `href="style.css?v=${v}"`)
     .replace('src="sprites.js"', `src="sprites.js?v=${v}"`)
     .replace('src="app.js"', `src="app.js?v=${v}"`));
+  const nf = path.join(prevDir, 'nueva/index.html');
+  await fs.writeFile(nf, (await fs.readFile(nf, 'utf8'))
+    .replace('href="style.css"', `href="style.css?v=${v}"`)
+    .replace('src="fito.js"', `src="fito.js?v=${v}"`)
+    .replace('src="app.js"', `src="app.js?v=${v}"`));
 } catch (e) { if (e.code !== 'ENOENT') throw e; }
 console.log('Built dist/web, dist/preview and worker/src/trip.built.js');

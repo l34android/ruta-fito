@@ -69,7 +69,8 @@ export async function handleForwarded(env, update, ownerId) {
     let share = await getJSON(env, 'share');
     if (!share?.token || text.split(/\s+/)[1] === 'nuevo') { share = { token: crypto.randomUUID().replace(/-/g, '') }; await putJSON(env, 'share', share); }
     const url = `${env.PUBLIC_URL}/?k=${share.token}`;
-    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Modo 8 bits (prueba): ${url}\n\nMandame texto o fotos y aparecen en la sala. Respondé /borrar a un mensaje para sacarlo.`, disable_web_page_preview: true });
+    const nueva = `${env.PUBLIC_URL}/nueva/?k=${share.token}`;
+    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Links de prueba (comparten la misma sala):\n\nVista nueva: ${nueva}\nModo arcade: ${url}\n\nMandame texto o fotos y aparecen en la sala. Respondé /borrar a un mensaje para sacarlo.`, disable_web_page_preview: true });
     return { prueba: true };
   }
   if (cmd === '/borrar' && msg.reply_to_message) {
