@@ -85,9 +85,12 @@ La estética de videojuego de 8 bits y Fito animado hacen que sea un lugar lindo
   - Arriba, una barra de estado tipo HUD: ícono de la parada, nombre, km, hora estimada de llegada y una barra de progreso del día estilo "HP", en bloques.
   - Abajo, una barra de 3 pestañas estilo iOS: **Mapa · Ruta · Sala**, con un contador de mensajes nuevos.
   - Ruta y Sala abren como paneles a pantalla completa sobre el mapa.
-- **Paleta** (decisión de Claude): 4 tonos verdes de Game Boy, más el blanco y el marrón rojizo del pelaje de Fito. Son 6 colores en total.
+- **Estilo Street Fighter, arcade de pelea** (elegido por Lean):
+  - **Paleta corta:** azul noche `#0b0b1a`, panel `#1a2350`, amarillo arcade `#ffd400`, rojo `#e4262c` y blanco, más el marrón rojizo `#c0662b` y el negro de Fito.
+  - **Barra de estado tipo barra de vida:** progreso del día en amarillo sobre rojo. El "reloj" del centro muestra los minutos a la próxima parada y hay un cartel "DÍA 1" / "DÍA 2".
+  - **Al llegar a una parada,** un cartel "¡PARADA!" de 2 s, al estilo "FIGHT!". Sin animación si el usuario pidió movimiento reducido.
 - **Tipografía:** "Press Start 2P" para títulos y la barra de estado, y "VT323" para el texto del chat y las listas, que es más legible. Las dos son de Google Fonts.
-- **Mapa:** los tiles de Esri pasan por un filtro CSS a monocromo verde, con `image-rendering: pixelated`. La ruta se dibuja como línea cuadrada.
+- **Mapa:** los tiles de Esri se agrandan ×2 (tileSize 512 con zoomOffset −1) con `image-rendering: pixelated`, así los píxeles se ven, y un filtro CSS los tiñe de azul noche. La ruta es una línea amarilla con borde negro.
 - **Sprites de Fito,** dibujados desde cero como matrices de píxeles en JS y renderizados a canvas:
   - **Cara de 16×16:** marcador en ruta.
   - **Cuerpo de 32×24, 4 cuadros:** marcador cuando el estado del plan es "acá". Mueve la cola y respira subiendo y bajando 1 px, con animación `steps(4)` a 6 fps.
@@ -121,7 +124,7 @@ La estética de videojuego de 8 bits y Fito animado hacen que sea un lugar lindo
 ## Decisiones de Claude (para revisar)
 - Durable Object para la sala.
 - Assets servidos desde el Worker, en lugar de Pages.
-- Paleta Game Boy y las dos tipografías.
+- Paleta y tipografías.
 - Fotos guardadas en Telegram.
 - `/prueba` para obtener el link.
 - Reenvío silencioso a Lean de los mensajes de la familia.
