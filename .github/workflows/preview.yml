@@ -54,3 +54,11 @@ jobs:
           printf '%s' "$TG_TOKEN" | npx --yes wrangler@3 secret put TG_TOKEN -c wrangler.preview.toml
           printf '%s' "$FORWARD_SECRET" | npx --yes wrangler@3 secret put FORWARD_SECRET -c wrangler.preview.toml
           sleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "${{ steps.cf.outputs.worker_url }}/"
+
+      - name: Migrate KV state into the Durable Object store
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          KV_ID: ${{ steps.cf.outputs.kv_id }}
+          WORKER_URL: ${{ steps.cf.outputs.worker_url }}
+        run: node scripts/migrate-kv.mjs

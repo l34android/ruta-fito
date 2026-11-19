@@ -102,3 +102,15 @@ test('location in preview creates room events, never Telegram alerts', async () 
   assert.equal(sent.filter((s) => s.url.endsWith('/sendMessage')).length, 0);
 });
 
+
+test('admin import restores the share token once and never overwrites it', async () => {
+  const { storeAdapter, MemoryStore } = await import('../src/state.js');
+  const store = new MemoryStore();
+  const e = { ...env, STATE: storeAdapter(store, null) };
+  const imp = (body, secret = 'fw') => core.handleRequest(new Request('https://p/admin/import', { method: 'POST', headers: { 'X-Ruta-Admin': secret }, body: JSON.stringify(body) }), e, { waitUntil() {} });
+  assert.equal((await imp({ share: '{"token":"abc"}' }, 'nope')).status, 403);
+  assert.deepEqual((await (await imp({ share: '{"token":"abc"}' })).json()).imported, ['share']);
+  assert.equal((await core.handleRequest(new Request('https://p/api/chat?k=abc'), e, { waitUntil() {} })).status, 200);
+  assert.deepEqual((await (await imp({ share: '{"token":"zzz"}' })).json()).imported, []);
+  assert.equal((await core.handleRequest(new Request('https://p/api/chat?k=abc'), e, { waitUntil() {} })).status, 200);
+});

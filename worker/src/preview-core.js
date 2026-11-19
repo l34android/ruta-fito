@@ -120,6 +120,16 @@ export async function handleRequest(request, env, ctx) {
       try { await handleForwarded(env, await request.json(), owner); } catch (e) { console.error('forwarded failed', e.stack || e); }
       return new Response('ok');
     }
+    if (url.pathname === '/admin/import' && request.method === 'POST') { // one-time copy of KV data into the store
+      if (!env.FORWARD_SECRET || request.headers.get('X-Ruta-Admin') !== env.FORWARD_SECRET) return new Response('forbidden', { status: 403 });
+      const body = await request.json();
+      const keys = Object.keys(body).filter((k) => ['owner', 'share', 'track', 'visits', 'flags'].includes(k) && typeof body[k] === 'string');
+      const existing = env.STATE.getMany ? await env.STATE.getMany(keys) : {};
+      const done = [];
+      for (const k of keys) if (existing[k] == null) { await env.STATE.put(k, body[k]); done.push(k); } // never overwrite newer state
+      pmem.cache.clear();
+      return json({ imported: done });
+    }
     if (!url.pathname.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Ruta Fito 8-bit');
     if (!(await authed(env, url))) return json({ error: 'Link no válido o vencido' }, 404);
     const room = roomOf(env);
