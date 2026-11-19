@@ -30,7 +30,7 @@ async function tg(env, method, body) {
 }
 const send = (env, chatId, text, extra = {}) => tg(env, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, ...extra });
 
-async function loadState(env) {
+export async function loadState(env) {
   const [owner, track, visits, fuel, flags, notified, share, family] = await Promise.all(
     ['owner', 'track', 'visits', 'fuel', 'flags', 'notified', 'share', 'family'].map((k) => getJSON(env, k)),
   );
@@ -42,7 +42,7 @@ function shareUrl(env, share) {
 }
 
 // One view of the trip that every consumer (cron, bot, app, family page) reads.
-function buildView(st, now) {
+export function buildView(st, now) {
   const status = computeStatus({ pos: st.track.pos, history: st.track.history, days, now });
   const planned = (d) => livePlan({ day: d, live: false });
   if (!status.hasPosition) {
@@ -310,8 +310,26 @@ export async function runCron(env, now = Date.now()) {
   return out;
 }
 
+// Copy the owner's private updates to the preview Worker. Fire-and-forget: it never
+// affects the production response, and any failure is swallowed.
+export async function forwardToPreview(env, update) {
+  try {
+    const msg = update.message || update.edited_message;
+    if (!msg?.chat || msg.chat.type !== 'private') return false;
+    const owner = await getJSON(env, 'owner');
+    if (!owner || msg.chat.id !== owner) return false;
+    await fetch(`${env.PREVIEW_URL}/tg`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Ruta-Forward': env.FORWARD_SECRET, 'X-Ruta-Owner': String(owner) },
+      body: JSON.stringify(update),
+      signal: AbortSignal.timeout(5000),
+    });
+    return true;
+  } catch (e) { console.error('preview forward failed', e?.message || e); return false; }
+}
+
 // Family-safe projection of the view.
-function publicView(st, view, now) {
+export function publicView(st, view, now) {
   const pos = st.track.pos;
   const nearHome = pos && haversineKm([pos.lon, pos.lat], [HOME.lon, HOME.lat]) < HOME_HIDE_KM;
   const s = view.status;
@@ -330,13 +348,14 @@ function publicView(st, view, now) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
     if (url.pathname === '/tg' && request.method === 'POST') {
       if (request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.WEBHOOK_SECRET) return new Response('forbidden', { status: 403 });
       const update = await request.json();
       try { await handleUpdate(env, update); } catch (e) { console.error('update failed', e.stack || e); }
+      if (env.PREVIEW_URL && env.FORWARD_SECRET && ctx?.waitUntil) ctx.waitUntil(forwardToPreview(env, update));
       return new Response('ok');
     }
     if (url.pathname === '/status') {

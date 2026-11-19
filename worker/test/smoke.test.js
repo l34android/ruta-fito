@@ -3,6 +3,7 @@ import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { ensureMockTrip } from './_mocktrip.js';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const builtPath = path.join(here, '../src/trip.built.js');
@@ -20,15 +21,7 @@ const OWNER = 42, FAMILY = -100;
 let trip;
 
 before(async () => {
-  trip = JSON.parse(await fs.readFile(path.join(here, '../../data/trip.json'), 'utf8'));
-  const { cumulativeKm } = await import('../src/logic.js');
-  trip.days = trip.days.map((d) => {
-    const route = d.stops.map((s) => [s.lon, s.lat]);
-    const cum = cumulativeKm(route);
-    return { ...d, route, totalKm: Math.round(cum.at(-1)), driveMin: 600, plannedEnd: '19:00',
-      stops: d.stops.map((s, i) => ({ ...s, km: cum[i], plannedArrival: '12:00', legKm: i ? cum[i] - cum[i - 1] : 0, legMin: i ? Math.round((cum[i] - cum[i - 1]) / 1.3) : 0 })) };
-  });
-  await fs.writeFile(builtPath, `export default ${JSON.stringify(trip)};\n`);
+  trip = await ensureMockTrip();
   globalThis.fetch = async (url, init) => { sent.push({ url: String(url), body: init?.body ? JSON.parse(init.body) : null }); return new Response('{"ok":true}'); };
   worker = await import('../src/index.js');
 });

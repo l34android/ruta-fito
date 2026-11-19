@@ -3,3 +3,4 @@ node_modules/
 worker/src/trip.built.js
 worker/wrangler.toml
 .wrangler/
+worker/wrangler.preview.toml
