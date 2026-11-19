@@ -10,17 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Read migration output of the last preview run
+      - name: Last preview run status and vars
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           exec > >(tee diag-output.txt) 2>&1
-          RID=$(gh run list -R ${{ github.repository }} --workflow preview.yml -L 1 --json databaseId,conclusion,headSha -q '.[0] | "\(.databaseId) \(.conclusion) \(.headSha)"')
-          echo "run: $RID"
-          gh run view -R ${{ github.repository }} ${RID%% *} --log | grep -E "KV [a-z]+:|import:|Nothing read|Migrate|##\[error\]" | sed -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' | head -40
+          gh run list -R ${{ github.repository }} --workflow preview.yml -L 2 --json databaseId,status,conclusion,createdAt -q '.[] | "\(.databaseId) \(.status) \(.conclusion) \(.createdAt)"'
+          RID=$(gh run list -R ${{ github.repository }} --workflow preview.yml -L 1 --json databaseId -q '.[0].databaseId')
+          gh run view -R ${{ github.repository }} $RID --log | grep -E "SHARE_SHA256|Deploy preview|Uploaded|Current Version|error" | sed -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' | head -20
+          curl -s -o b.txt -w "%{http_code} badkey\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/api/public?k=x"; head -c 120 b.txt; echo
       - name: Save output to the branch
         if: always()
         run: |
           sed -i -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' diag-output.txt
           git config user.name diag-bot; git config user.email diag@users.noreply.github.com
-          git add diag-output.txt && git commit -m "diag output 3 [skip ci]" && git push
+          git add diag-output.txt && git commit -m "diag output 4 [skip ci]" && git push
