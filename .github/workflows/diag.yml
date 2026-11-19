@@ -1,0 +1,34 @@
+name: Diagnóstico servidor
+on:
+  push:
+    branches: ['diag/**']
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tail Worker logs while hitting /status
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          ACC=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id')
+          export CLOUDFLARE_ACCOUNT_ID=$ACC
+          for W in ruta-fito ruta-fito-preview; do
+            echo "=== $W ==="
+            (timeout 40 npx --yes wrangler@3 tail $W --format pretty > tail-$W.log 2>&1 &)
+            sleep 15
+            SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts/$ACC/workers/subdomain | jq -r '.result.subdomain')
+            if [ "$W" = "ruta-fito" ]; then P=/status; else P="/api/public?k=x"; fi
+            for i in 1 2; do curl -s -o body.txt -w "HTTP %{http_code}\n" "https://$W.$SUB.workers.dev$P"; head -c 300 body.txt | tr -d '\n' | sed 's/<[^>]*>/ /g' | tr -s ' ' | head -c 300; echo; done
+            sleep 25
+            grep -v -i -E "token|secret|authorization" tail-$W.log | head -60
+          done
+      - name: KV operations today (GraphQL analytics)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          ACC=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id')
+          TODAY=$(date -u +%Y-%m-%d)
+          Q="{\"query\":\"{ viewer { accounts(filter:{accountTag:\\\"$ACC\\\"}) { kvOperationsAdaptiveGroups(limit:20, filter:{date_geq:\\\"$TODAY\\\"}) { sum { requests } dimensions { actionType } } } } }\"}"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" -d "$Q" https://api.cloudflare.com/client/v4/graphql | jq -c '.data.viewer.accounts[0].kvOperationsAdaptiveGroups // .errors'
