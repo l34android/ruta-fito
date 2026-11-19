@@ -1,0 +1,8 @@
+200 https://ruta-fito.ruta-fito-4e6efe.workers.dev/status
+{"hasPosition":true,"dayId":"d2","dayLabel":"Día 2 · Jue 19","km":267.5,"offRouteKm":0,"speedKmh":85,"next":{"id":"d2-choele","name":"ACA Choele Choel (RN22 k
+404 https://ruta-fito.ruta-fito-4e6efe.workers.dev/public?k=x
+{"error":"Link no válido o vencido"}
+404 https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/api/public?k=x
+{"error":"Link no válido o vencido"}
+200 https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/nueva/
+<!doctype html><html lang="es-AR"><head>  <meta charset="utf-8">  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> 
