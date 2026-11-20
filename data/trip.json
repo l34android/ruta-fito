@@ -1,10 +1,10 @@
 {
-  "title": "Ruta Fito · Berisso → Arroyito",
+  "title": "Ruta Fito · Berisso → San Martín de los Andes",
   "vehicle": "Ford Ranger 2.0 biturbo XLT 2023 · autonomía ~600 km",
   "fuelRuleKm": 450,
   "destination": {
-    "lat": -39.07339,
-    "lon": -68.56653
+    "lat": -40.15299,
+    "lon": -71.33771
   },
   "days": [
     {
@@ -153,12 +153,85 @@
         },
         {
           "id": "d2-destino",
-          "type": "destino",
-          "name": "Arroyito (destino)",
+          "type": "noche",
+          "name": "Arroyito",
           "lat": -39.07339,
           "lon": -68.56653,
-          "description": "Llegada. ¡Buen viaje!",
-          "fito": "Embalse Arroyito a la vista.",
+          "description": "Llegada del día 2. Noche en Arroyito antes de seguir hacia la cordillera.",
+          "fito": "Embalse Arroyito a la vista: paseo largo al llegar.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": false
+        }
+      ]
+    },
+    {
+      "id": "d3",
+      "date": "2026-11-20",
+      "label": "Día 3 · Vie 20",
+      "departure": "10:00",
+      "stops": [
+        {
+          "id": "d3-salida",
+          "type": "salida",
+          "name": "Arroyito",
+          "lat": -39.07339,
+          "lon": -68.56653,
+          "description": "Salida hacia la cordillera. Compartí de nuevo la ubicación en tiempo real con el bot.",
+          "fito": "Paseo corto antes de subir.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": false
+        },
+        {
+          "id": "d3-huincul",
+          "type": "descanso",
+          "name": "Plaza Huincul · Museo Carmen Funes",
+          "lat": -38.93118,
+          "lon": -69.19387,
+          "description": "Primer destino: el museo del Argentinosaurus, uno de los dinosaurios más grandes del mundo. Si no cargaste nafta desde Choele Choel, cargá acá.",
+          "fito": "No entra al museo: alguien se queda con él en la plaza de enfrente.",
+          "dwellMin": 60,
+          "aca": false,
+          "detourKm": 1,
+          "fuel": false
+        },
+        {
+          "id": "d3-zapala",
+          "type": "nafta",
+          "name": "ACA Zapala (RN22 km 1401)",
+          "lat": -38.88975,
+          "lon": -70.03769,
+          "description": "Carga de nafta antes del tramo largo por la RN40 hacia Junín de los Andes.",
+          "fito": "Parada corta para estirar, con correa.",
+          "dwellMin": 20,
+          "aca": true,
+          "detourKm": 0,
+          "fuel": true
+        },
+        {
+          "id": "d3-junin",
+          "type": "descanso",
+          "name": "Vía Christi · Junín de los Andes",
+          "lat": -39.94938,
+          "lon": -71.0924,
+          "description": "Parque escultórico en el cerro, con senderos y vista al valle del Chimehuín.",
+          "fito": "Senderos con verde y sombra: el mejor descanso del día para Fito.",
+          "dwellMin": 40,
+          "aca": false,
+          "detourKm": 2,
+          "fuel": false
+        },
+        {
+          "id": "d3-destino",
+          "type": "destino",
+          "name": "San Martín de los Andes",
+          "lat": -40.15299,
+          "lon": -71.33771,
+          "description": "Llegada. A pocas cuadras está la costanera del lago Lácar. ACA en Av. Koessler para cargar al llegar.",
+          "fito": "Costanera del Lácar para el paseo de llegada.",
           "dwellMin": 0,
           "aca": false,
           "detourKm": 0,

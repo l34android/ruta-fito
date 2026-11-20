@@ -91,7 +91,7 @@ test('/status exposes the live plan; /public needs the token and hides home', as
   const token = JSON.parse(kv.get('share')).token;
   const pub = await (await worker.default.fetch(new Request(`https://w/public?k=${token}`), env)).json();
   assert.equal(pub.hasPosition, true);
-  assert.ok(pub.plans.length === 2);
+  assert.equal(pub.plans.length, trip.days.length);
   assert.equal(pub.position.lat, stop('d1-gorchs').lat + 0.001);
   assert.equal(pub.plans[0].live, true);
   Date.now = realNow;
