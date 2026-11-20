@@ -278,7 +278,7 @@ export async function runCron(env, now = Date.now()) {
       st.notified[key] = now; await putJSON(env, 'notified', st.notified);
       const day = days.find((d) => d.id === status.dayId);
       const end = day.stops.at(-1);
-      await send(env, st.owner, end.type === 'destino' ? '🏁 <b>¡Llegaron a Arroyito!</b> Buen viaje, Fito.' : `🛏️ <b>Llegaron a ${esc(end.name)}</b>. A descansar. Mañana sigue la ruta.`);
+      await send(env, st.owner, end.type === 'destino' ? `🏁 <b>¡Llegaron a ${esc(end.name)}!</b> Buen viaje, Fito.` : `🛏️ <b>Llegaron a ${esc(end.name)}</b>. A descansar. Mañana sigue la ruta.`);
     }
     return out;
   }
