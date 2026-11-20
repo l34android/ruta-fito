@@ -109,6 +109,17 @@
     $('mini').dataset.stop = s.id;
   }
 
+  // ── Now playing (Spotify) ─────────────────
+  function renderMusic() {
+    const m = data?.music, el = $('music');
+    if (!m) { el.hidden = true; return; }
+    el.hidden = false;
+    $('music-title').textContent = m.title; $('music-artist').textContent = m.artist;
+    if (m.image) { $('music-art').src = m.image; $('music-art').hidden = false; } else $('music-art').hidden = true;
+    el.href = m.url || '#';
+    el.setAttribute('aria-label', `Sonando en la Ranger: ${m.title}, de ${m.artist}. Abrir en Spotify`);
+  }
+
   // ── Ruta ──────────────────────────────────
   function renderDays() {
     $('days').innerHTML = trip.days.map((d) => `<button class="segment" type="button" role="tab" data-day="${d.id}" aria-selected="${d.id === selectedDay}">${esc(d.label)}</button>`).join('');
@@ -222,7 +233,7 @@
       if (r.status === 404) return fatal();
       data = await r.json();
     } catch { data = null; }
-    renderStatus(); renderMini(); renderFito(); highlight();
+    renderStatus(); renderMini(); renderMusic(); renderFito(); highlight();
     if (!userPickedDay) selectedDay = dayNow();
     renderDays(); renderStops();
   }

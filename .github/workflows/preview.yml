@@ -51,10 +51,16 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
         run: |
           npx --yes wrangler@3 deploy -c wrangler.preview.toml
           printf '%s' "$TG_TOKEN" | npx --yes wrangler@3 secret put TG_TOKEN -c wrangler.preview.toml
           printf '%s' "$FORWARD_SECRET" | npx --yes wrangler@3 secret put FORWARD_SECRET -c wrangler.preview.toml
+          if [ -n "$SPOTIFY_CLIENT_ID" ] && [ -n "$SPOTIFY_CLIENT_SECRET" ]; then
+            printf '%s' "$SPOTIFY_CLIENT_ID" | npx --yes wrangler@3 secret put SPOTIFY_CLIENT_ID -c wrangler.preview.toml
+            printf '%s' "$SPOTIFY_CLIENT_SECRET" | npx --yes wrangler@3 secret put SPOTIFY_CLIENT_SECRET -c wrangler.preview.toml
+          else echo "Spotify secrets not set yet"; fi
           sleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "${{ steps.cf.outputs.worker_url }}/"
 
       - name: Migrate KV state into the Durable Object store

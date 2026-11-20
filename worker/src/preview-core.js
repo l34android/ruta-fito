@@ -6,6 +6,7 @@ import trip from './trip.built.js';
 import { pickDay, argentinaDate, detectVisit, formatClock } from './logic.js';
 import { loadState, buildView, publicView } from './index.js';
 import { validateFamilyMessage, telegramPostFromOwner } from './chat.js';
+import { authorizeUrl, exchangeCode, nowPlaying, parseNowPlaying, _mem as spMem } from './spotify.js';
 
 const days = trip.days;
 const POS_WRITE_EVERY_MS = 90e3;
@@ -18,6 +19,8 @@ async function tg(env, method, body) {
   if (!r.ok) console.error('telegram', method, r.status, await r.text());
   return r.ok ? r.json() : null;
 }
+
+const page = (title, text, status = 200) => new Response(`<!doctype html><html lang="es-AR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#000;color:#f5f5f7;font:16px/1.55 -apple-system,system-ui,sans-serif"><main style="max-width:420px;padding:24px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:#1c1c1e;margin:16px"><h1 style="font-size:1.44rem;font-weight:600;margin:0 0 8px">${title}</h1><p style="margin:0;color:#c7c7cc">${text.replace(/</g, '&lt;')}</p></main></body></html>`, { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 
 export const roomOf = (env) => env.ROOM.get(env.ROOM.idFromName('familia'));
 
@@ -79,6 +82,24 @@ export async function handleForwarded(env, update, ownerId) {
     const nueva = `${env.PUBLIC_URL}/nueva/?k=${share.token}`;
     await tg(env, 'sendMessage', { chat_id: ownerId, text: `Links de prueba (comparten la misma sala):\n\nVista nueva: ${nueva}\nModo arcade: ${url}\n\nMandame texto o fotos y aparecen en la sala. Respondé /borrar a un mensaje para sacarlo.`, disable_web_page_preview: true });
     return { prueba: true };
+  }
+  if (cmd === '/musica' || cmd === '/música') {
+    const arg = (text.split(/\s+/)[1] || '').toLowerCase();
+    const sp = await getJSON(env, 'spotify');
+    if (!env.SPOTIFY_CLIENT_ID) { await tg(env, 'sendMessage', { chat_id: ownerId, text: 'Falta configurar la app de Spotify (secretos SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET).' }); return { musica: 'unconfigured' }; }
+    if (arg === 'off' || arg === 'on') {
+      await putJSON(env, 'spotifyOn', arg === 'on'); spMem.at = 0;
+      await tg(env, 'sendMessage', { chat_id: ownerId, text: arg === 'on' ? 'Listo: la app vuelve a mostrar lo que suena.' : 'Listo: la app deja de mostrar lo que suena. Para volver: /musica on' });
+      return { musica: arg };
+    }
+    if (sp?.refresh && arg !== 'reconectar') {
+      await tg(env, 'sendMessage', { chat_id: ownerId, text: 'Spotify ya está conectado. /musica off para ocultarlo, /musica on para mostrarlo, /musica reconectar para autorizar de nuevo.' });
+      return { musica: 'connected' };
+    }
+    const nonce = crypto.randomUUID().replace(/-/g, '');
+    await putJSON(env, 'spotifyNonce', { nonce, exp: Date.now() + 10 * 60e3 });
+    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Tocá este link para conectar Spotify (vence en 10 min):\n${env.PUBLIC_URL}/spotify/login?n=${nonce}`, disable_web_page_preview: true });
+    return { musica: 'link' };
   }
   if (cmd === '/borrar' && msg.reply_to_message) {
     const id = await getJSON(env, `map:${msg.reply_to_message.message_id}`);
@@ -142,6 +163,26 @@ export async function handleRequest(request, env, ctx) {
       pmem.cache.clear();
       return json({ imported: done });
     }
+    if (url.pathname === '/spotify/login') {
+      const n = await getJSON(env, 'spotifyNonce');
+      if (!n || n.nonce !== url.searchParams.get('n') || n.exp < Date.now()) return page('Este link venció', 'Mandale /musica al bot para pedir uno nuevo.', 400);
+      return Response.redirect(authorizeUrl(env, n.nonce), 302);
+    }
+    if (url.pathname === '/spotify/callback') {
+      const n = await getJSON(env, 'spotifyNonce');
+      if (!n || n.nonce !== url.searchParams.get('state') || n.exp < Date.now()) return page('No pude verificar el pedido', 'Mandale /musica al bot y probá de nuevo.', 400);
+      if (url.searchParams.get('error')) return page('No se conectó', 'Cancelaste la autorización en Spotify. Podés reintentar con /musica.', 400);
+      try {
+        const tokens = await exchangeCode(env, url.searchParams.get('code'));
+        await putJSON(env, 'spotify', tokens); await putJSON(env, 'spotifyOn', true); await putJSON(env, 'spotifyNonce', null);
+        // Verify the endpoint right away (Spotify restricts some endpoints for development-mode apps).
+        const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', { headers: { Authorization: `Bearer ${tokens.access}` } });
+        spMem.at = 0;
+        if (r.status === 200) { const t = parseNowPlaying(await r.json()); return page('Spotify conectado', t ? `Ahora suena: ${t.title} — ${t.artist}. Ya aparece en la app.` : 'Funciona. Cuando pongas música, aparece en la app.'); }
+        if (r.status === 204) return page('Spotify conectado', 'Funciona. Cuando pongas música, aparece en la app.');
+        return page('Conectado, pero Spotify no deja leer lo que suena', `Respuesta ${r.status}. Puede ser una restricción de Spotify para apps en modo desarrollo; avisale a Claude.`, 200);
+      } catch (e) { return page('No pude conectar', `Error al pedir el permiso a Spotify (${String(e.message).slice(0, 80)}). Revisá el Client Secret y la Redirect URI.`, 500); }
+    }
     if (url.pathname === '/api/diag') { // no secrets: only whether things are configured
       const share = await getJSON(env, 'share');
       return json({ shareSet: !!share?.token, hashConfigured: !!env.SHARE_SHA256, store: !!env.STORE });
@@ -155,6 +196,8 @@ export async function handleRequest(request, env, ctx) {
       if (hit && Date.now() - hit.at < 15e3) return json(hit.body);
       const st = await loadState(env);
       const body = publicView(st, buildView(st, Date.now()), Date.now());
+      const [sp, on] = await Promise.all([getJSON(env, 'spotify'), getJSON(env, 'spotifyOn')]);
+      body.music = await nowPlaying(env, { sp, enabled: on !== false, save: (v) => putJSON(env, 'spotify', v) });
       pmem.cache.set('public', { at: Date.now(), body });
       return json(body);
     }

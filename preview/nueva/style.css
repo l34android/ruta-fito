@@ -57,6 +57,20 @@ p, h2, h3, ol, dl, dd { margin: 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex: none; }
 .dot.ok { background: var(--accent); } .dot.warn { background: var(--warning); }
 
+/* Now playing (Spotify) */
+.music { position: fixed; z-index: 900; top: calc(var(--safe-t) + 84px); left: 12px; display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s4) var(--s2) var(--s2); max-width: min(360px, calc(100vw - 88px)); min-height: var(--tap); border-radius: var(--r-md); color: var(--text); text-decoration: none; }
+.music[hidden] { display: none; }
+.music:hover { border-color: var(--border-strong); }
+.music-art { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--surface-2); flex: none; }
+.music-text { display: flex; flex-direction: column; min-width: 0; }
+.music-title { font-weight: var(--w-semibold); line-height: var(--lh-tight); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.music-artist { font-size: var(--t-secondary); color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eq { display: flex; align-items: flex-end; gap: 2px; height: 16px; flex: none; }
+.eq i { width: 3px; background: var(--accent); border-radius: 1px; animation: eq 1s ease-in-out infinite; }
+.eq i:nth-child(1) { height: 40%; } .eq i:nth-child(2) { height: 100%; animation-delay: -.4s; } .eq i:nth-child(3) { height: 65%; animation-delay: -.7s; }
+@keyframes eq { 50% { transform: scaleY(.35); } }
+.eq i { transform-origin: bottom; }
+
 /* Next-stop mini card, above the tab bar */
 .mini { position: fixed; z-index: 900; left: 12px; right: 12px; bottom: calc(var(--tab-h) + var(--safe-b) + 12px); display: grid; grid-template-columns: 48px minmax(0,1fr) 24px; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4) var(--s3) var(--s3); text-align: left; cursor: pointer; color: var(--text); min-height: 72px; }
 .mini[hidden] { display: none; }
@@ -145,6 +159,6 @@ input:focus, textarea:focus { outline: 3px solid var(--accent); outline-offset: 
   .leaflet-bottom { bottom: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fito-tail, .fito-breathe { animation: none; }
+  .fito-tail, .fito-breathe, .eq i { animation: none; }
   .sheet, .toast { transition: none; }
 }
