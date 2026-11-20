@@ -1,0 +1,22 @@
+deploy.yml 2eca2fa completed success
+preview.yml b0ba4bf completed success
+d1: 575 km, 441 min driving, 3086 pts
+  10:30  km 0	Berisso
+  12:33  km 145.1	ACA Gorchs (RN3 km 143)
+  14:55  km 307	Balneario Municipal de Azul
+  16:17  km 354.7	ACA Olavarría
+  19:11  km 574.7	Villa Ventana
+d2: 706 km, 557 min driving, 3984 pts
+  09:00  km 0	Villa Ventana
+  10:20  km 105.8	ACA Bahía Blanca (Villa Bordeu)
+  12:35  km 266.6	ACA Río Colorado (RN22 km 859)
+  15:18  km 406.9	ACA Choele Choel (RN22 km 997)
+  17:33  km 550	Isla 58 · Villa Regina
+  20:17  km 704.7	Arroyito
+d3: 383 km, 309 min driving, 3734 pts
+  10:00  km 0	Arroyito
+  10:43  km 58.9	Plaza Huincul · Museo Carmen Funes
+  12:42  km 134.1	ACA Zapala (RN22 km 1401)
+  15:38  km 342.5	Vía Christi · Junín de los Andes
+  17:09  km 383.1	San Martín de los Andes
+import: 200 {"imported":[]}
