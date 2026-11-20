@@ -1,0 +1,14 @@
+aca-cutralco: (none)
+aca-zapala: ACA|amenity/fuel|-38.88975,-70.03769|ACA, Km 1401, Ruta Nacional 22, Santa Bárbara, Zapala, Municipio de Za
+aca-junin: (none)
+aca-sma: ACA|amenity/fuel|-40.15337,-71.33333|ACA, 2176, Avenida Rodolfo Koessler, El Oasis, San Martín de los Andes
+fuel-zapala: (none)
+fuel-junin: YPF|amenity/fuel|-39.94438,-71.07322|YPF, Juan Manuel de Rosas, Progreso, Junín de los Andes, Municipio de 
+museo-huincul: Museo Municipal 'Carmen Funes'|tourism/museum|-38.93118,-69.19387|Museo Municipal 'Carmen Funes', 55, Avenida Córdoba, Otaño, Plaza Huin
+huincul: Municipio de Plaza Huincul|boundary/administrative|-38.93042,-69.20025|Municipio de Plaza Huincul, Departamento Confluencia, Neuquén, Argenti ;; Plaza Huincul|boundary/administrative|-38.93042,-69.20025|Plaza Huincul, Municipio de Plaza Huincul, Departamento Confluencia, N
+costanera-junin: (none)
+parque-junin: Parque Escultórico Temático Via Christi|leisure/park|-39.94938,-71.09240|Parque Escultórico Temático Via Christi, Municipio de Junín de los And ;; Plaza 2 de Abril|leisure/park|-39.95760,-71.07460|Plaza 2 de Abril, Lonquimay, Junín de los Andes, Municipio de Junín de ;; Plaza del Loteo América|leisure/park|-39.95563,-71.08225|Plaza del Loteo América, América, Junín de los Andes, Municipio de Jun ;; Plaza Los Abedules|leisure/park|-39.94932,-71.08114|Plaza Los Abedules, Primeros Pobladores, Junín de los Andes, Municipio ;; |leisure/park|-39.93851,-71.06879|Lanín, Junín de los Andes, Municipio de Junín de los Andes, Departamen
+zapala-parque: Plaza de Boca|leisure/park|-38.89351,-70.08148|Plaza de Boca, 12 de Julio, Zapala, Municipio de Zapala, Departamento  ;; Rotonda Primeros Pobladores|leisure/park|-38.90061,-70.06686|Rotonda Primeros Pobladores, Huailén, Zapala, Municipio de Zapala, Dep ;; |leisure/park|-38.89138,-70.04835|Santa Bárbara, Zapala, Municipio de Zapala, Departamento Zapala, Neuqu ;; |leisure/park|-38.90413,-70.06415|Centro, Zapala, Municipio de Zapala, Departamento Zapala, Neuquén, Q83 ;; |leisure/park|-38.89661,-70.06762|180 Viviendas, Zapala, Municipio de Zapala, Departamento Zapala, Neuqu
+sma-costanera: (none)
+sma: Municipio de San Martín de los Andes|boundary/administrative|-40.15688,-71.35256|Municipio de San Martín de los Andes, Departamento Lácar, Neuquén, Arg ;; San Martín de los Andes|boundary/administrative|-40.15299,-71.33771|San Martín de los Andes, Municipio de San Martín de los Andes, Departa
+arroyito: Arroyito|boundary/administrative|-39.07452,-68.57155|Arroyito, Municipio de Senillosa, Departamento Confluencia, Neuquén, A
