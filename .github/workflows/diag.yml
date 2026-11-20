@@ -10,16 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Preview config check (no secrets)
+      - name: Spotify secrets in last preview deploy
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           exec > >(tee diag-output.txt) 2>&1
           gh run list -R ${{ github.repository }} --workflow preview.yml -L 1 --json headSha,status,conclusion -q '.[0] | "\(.headSha[0:7]) \(.status) \(.conclusion)"'
-          curl -s "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/api/diag"; echo
+          RID=$(gh run list -R ${{ github.repository }} --workflow preview.yml -L 1 --json databaseId -q '.[0].databaseId')
+          gh run view -R ${{ github.repository }} $RID --log | grep -E "Spotify secrets not set|Success! Uploaded secret SPOTIFY" | sed -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' | head
       - name: Save output to the branch
         if: always()
         run: |
           sed -i -E 's/[A-Za-z0-9_-]{30,}/[redacted]/g' diag-output.txt
           git config user.name diag-bot; git config user.email diag@users.noreply.github.com
-          git add diag-output.txt && git commit -m "diag output 5 [skip ci]" && git push
+          git add diag-output.txt && git commit -m "diag output 6 [skip ci]" && git push

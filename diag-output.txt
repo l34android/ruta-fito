@@ -1,2 +1,0 @@
-31fa41b completed success
-{"shareSet":true,"hashConfigured":true,"store":true}
