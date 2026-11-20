@@ -1,4 +1,0 @@
-ca2ef97 completed success
-preview	Deploy preview Worker (assets + Durable Object)	2026-11-20T06:26:25.6253333Z ^[[36;1melse echo "Spotify secrets not set yet"; fi^[[0m
-preview	Deploy preview Worker (assets + Durable Object)	2026-11-20T06:26:43.6408655Z ✨ Success! Uploaded secret SPOTIFY_CLIENT_ID
-preview	Deploy preview Worker (assets + Durable Object)	2026-11-20T06:26:45.3684426Z ✨ Success! Uploaded secret SPOTIFY_CLIENT_SECRET
