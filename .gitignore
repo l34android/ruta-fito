@@ -4,3 +4,4 @@ worker/src/trip.built.js
 worker/wrangler.toml
 .wrangler/
 worker/wrangler.preview.toml
+worker/src/race.built.js

@@ -7,6 +7,10 @@ import { pickDay, argentinaDate, detectVisit, formatClock } from './logic.js';
 import { loadState, buildView, publicView } from './index.js';
 import { validateFamilyMessage, telegramPostFromOwner } from './chat.js';
 import { authorizeUrl, exchangeCode, nowPlaying, parseNowPlaying, _mem as spMem } from './spotify.js';
+import raceData from './race.built.js';
+import { prepareCourse, updateRace, raceView } from './race.js';
+
+const course = prepareCourse(raceData);
 
 const days = trip.days;
 const POS_WRITE_EVERY_MS = 90e3;
@@ -54,6 +58,11 @@ async function onLocation(env, st, msg, room) {
       await room.add({ ts, author: 'Ruta', kind: 'event', text: `${day.label.toUpperCase()}: ¡salieron de ${day.stops[0].name}!` });
     }
   }
+  if (argentinaDate(ts) === course.date || env.RACE_ANY_DAY === '1') { // Gran Fondo day: track progress on the course
+    const race = updateRace(course, await getJSON(env, 'race'), p, ts);
+    writes.push(putJSON(env, 'race', race));
+    pmem.cache.delete('granfondo');
+  }
   pmem.lastPosTs = ts;
   writes.push(putJSON(env, 'track', { pos, history, near }));
   await Promise.all(writes);
@@ -82,6 +91,23 @@ export async function handleForwarded(env, update, ownerId) {
     const nueva = `${env.PUBLIC_URL}/nueva/?k=${share.token}`;
     await tg(env, 'sendMessage', { chat_id: ownerId, text: `Links de prueba (comparten la misma sala):\n\nVista nueva: ${nueva}\nModo arcade: ${url}\n\nMandame texto o fotos y aparecen en la sala. Respondé /borrar a un mensaje para sacarlo.`, disable_web_page_preview: true });
     return { prueba: true };
+  }
+  if (cmd === '/granfondo') {
+    let share = await getJSON(env, 'share');
+    if (!share?.token) { share = { token: crypto.randomUUID().replace(/-/g, '') }; await putJSON(env, 'share', share); }
+    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Gran Fondo 7 Lagos, seguimiento en vivo:\n${env.PUBLIC_URL}/granfondo/?k=${share.token}\n\nEl domingo compartime la ubicación en tiempo real antes de largar. Si querés sumar los links de Karoo o Garmin: /seguimiento <link>`, disable_web_page_preview: true });
+    return { granfondo: true };
+  }
+  if (cmd === '/seguimiento') {
+    const arg = text.split(/\s+/)[1] || '';
+    const links = (await getJSON(env, 'gfLinks')) || {};
+    if (arg === 'borrar') { await putJSON(env, 'gfLinks', {}); pmem.cache.delete('granfondo'); await tg(env, 'sendMessage', { chat_id: ownerId, text: 'Listo, saqué los links de seguimiento.' }); return { links: 'cleared' }; }
+    let host = ''; try { host = new URL(arg).hostname; } catch {}
+    const kind = /hammerhead/.test(host) ? 'karoo' : /garmin/.test(host) ? 'garmin' : null;
+    if (!kind) { await tg(env, 'sendMessage', { chat_id: ownerId, text: 'Mandame /seguimiento seguido del link de Live Tracking del Karoo (hammerhead) o del LiveTrack de Garmin.' }); return { links: 'invalid' }; }
+    links[kind] = arg; await putJSON(env, 'gfLinks', links); pmem.cache.delete('granfondo');
+    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Listo: el link de ${kind === 'karoo' ? 'Karoo' : 'Garmin'} aparece en la vista del Gran Fondo.` });
+    return { links: kind };
   }
   if (cmd === '/musica' || cmd === '/música') {
     const arg = (text.split(/\s+/)[1] || '').toLowerCase();
@@ -199,6 +225,19 @@ export async function handleRequest(request, env, ctx) {
       const [sp, on] = await Promise.all([getJSON(env, 'spotify'), getJSON(env, 'spotifyOn')]);
       body.music = await nowPlaying(env, { sp, enabled: on !== false, save: (v) => putJSON(env, 'spotify', v) });
       pmem.cache.set('public', { at: Date.now(), body });
+      return json(body);
+    }
+    if (url.pathname === '/api/granfondo') {
+      const hit = pmem.cache.get('granfondo');
+      if (hit && Date.now() - hit.at < 15e3) return json(hit.body);
+      const [race, links, track] = await Promise.all([getJSON(env, 'race'), getJSON(env, 'gfLinks'), getJSON(env, 'track')]);
+      const now = Date.now();
+      const live = raceView(course, race, now, raceData.profile);
+      const pos = track?.pos;
+      const showPos = !!(race?.start && !race?.offCourse && pos && now - pos.ts < 45 * 60e3);
+      const body = { name: course.name, date: course.date, totalKm: course.totalKm, live, links: links || {},
+        position: showPos ? { lat: pos.lat, lon: pos.lon, ageMin: Math.round((now - pos.ts) / 60e3) } : null };
+      pmem.cache.set('granfondo', { at: now, body });
       return json(body);
     }
     if (url.pathname === '/api/chat' && request.method === 'GET') {

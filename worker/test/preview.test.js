@@ -138,3 +138,27 @@ test('the original link keeps working even after a new one is generated', async 
   assert.equal((await get('nuevo123')).status, 200);
   assert.equal((await get('otro')).status, 404);
 });
+
+test('Gran Fondo: race-day locations drive the live view; hotel location stays hidden', async () => {
+  const { storeAdapter, MemoryStore } = await import('../src/state.js');
+  const e = { ...env, STATE: storeAdapter(new MemoryStore(), null) };
+  core.pmem.lastPosTs = 0; core.pmem.cache.clear();
+  await e.STATE.put('share', JSON.stringify({ token: 'gf' }));
+  const lonPerKm = 1 / 85.24;
+  const T = (h, m) => Math.round(Date.UTC(2026, 10, 22, h + 3, m) / 1000);
+  const loc = (km, t, off = 0) => core.handleRequest(new Request('https://p/tg', { method: 'POST', headers: { 'X-Ruta-Forward': 'fw', 'X-Ruta-Owner': '42' },
+    body: JSON.stringify({ message: { message_id: 1, chat: { id: 42, type: 'private' }, from: { id: 42 }, date: t, location: { latitude: -40 + off, longitude: -71.5 + km * lonPerKm } } }) }), e, { waitUntil() {} });
+  const gf = async () => { core.pmem.cache.clear(); return (await core.handleRequest(new Request('https://p/api/granfondo?k=gf'), e, {})).json(); };
+  await loc(10, T(7, 0), 0.3); // hotel, far from the course
+  let v = await gf();
+  assert.equal(v.live.started, false);
+  assert.equal(v.position, null);
+  await loc(0.5, T(8, 0));
+  await loc(15.5, T(8, 30));
+  v = await gf();
+  assert.equal(v.live.started, true);
+  assert.ok(v.live.km > 15 && v.live.km < 16);
+  assert.ok(v.position);
+  assert.equal(v.live.nextClimb.startKm, 87);
+  assert.equal((await core.handleRequest(new Request('https://p/api/granfondo?k=nope'), e, {})).status, 404);
+});

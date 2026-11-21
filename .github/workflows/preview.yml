@@ -22,7 +22,7 @@ jobs:
           node-version: 22
 
       - name: Unit tests
-        run: node --test worker/test/*.test.js && rm -f worker/src/trip.built.js
+        run: node --test worker/test/*.test.js && rm -f worker/src/trip.built.js worker/src/race.built.js
 
       - name: Derive forward secret from bot token
         env:
@@ -44,6 +44,9 @@ jobs:
 
       - name: Build route and apps
         run: node scripts/build.mjs
+
+      - name: Build Gran Fondo course (route, elevation, climbs, lakes)
+        run: node scripts/build-race.mjs
 
       - name: Deploy preview Worker (assets + Durable Object)
         working-directory: worker

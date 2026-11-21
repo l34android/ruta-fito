@@ -1,0 +1,13 @@
+{
+  "id": "gf7l-2026",
+  "name": "Gran Fondo 7 Lagos",
+  "date": "2026-11-22",
+  "officialKm": 110,
+  "start": { "label": "San Martín de los Andes", "query": "Juez del Valle, San Martín de los Andes", "lat": -40.15688, "lon": -71.35256 },
+  "finish": { "label": "Villa La Angostura", "query": "Villa La Angostura, Neuquén", "lat": -40.7623, "lon": -71.6448 },
+  "lakes": ["Lago Lácar", "Lago Machónico", "Lago Falkner", "Lago Villarino", "Lago Espejo", "Lago Correntoso", "Lago Nahuel Huapi"],
+  "officialClimbs": [
+    { "label": "Subida final 1", "fromFinishKm": 23, "lenKm": 1.9, "grade": 7.2 },
+    { "label": "Subida final 2", "fromFinishKm": 11.2, "lenKm": 1.2, "grade": 6.5 }
+  ]
+}

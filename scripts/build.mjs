@@ -101,5 +101,9 @@ try {
     .replace('href="style.css"', `href="style.css?v=${v}"`)
     .replace('src="fito.js"', `src="fito.js?v=${v}"`)
     .replace('src="app.js"', `src="app.js?v=${v}"`));
+  const gf = path.join(prevDir, 'granfondo/index.html');
+  await fs.writeFile(gf, (await fs.readFile(gf, 'utf8'))
+    .replace('href="style.css"', `href="style.css?v=${v}"`)
+    .replace('src="app.js"', `src="app.js?v=${v}"`));
 } catch (e) { if (e.code !== 'ENOENT') throw e; }
 console.log('Built dist/web, dist/preview and worker/src/trip.built.js');
