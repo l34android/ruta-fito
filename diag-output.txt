@@ -1,22 +1,41 @@
 deploy.yml 2eca2fa completed success
-preview.yml b0ba4bf completed success
-d1: 575 km, 441 min driving, 3086 pts
-  10:30  km 0	Berisso
-  12:33  km 145.1	ACA Gorchs (RN3 km 143)
-  14:55  km 307	Balneario Municipal de Azul
-  16:17  km 354.7	ACA Olavarría
-  19:11  km 574.7	Villa Ventana
-d2: 706 km, 557 min driving, 3984 pts
-  09:00  km 0	Villa Ventana
-  10:20  km 105.8	ACA Bahía Blanca (Villa Bordeu)
-  12:35  km 266.6	ACA Río Colorado (RN22 km 859)
-  15:18  km 406.9	ACA Choele Choel (RN22 km 997)
-  17:33  km 550	Isla 58 · Villa Regina
-  20:17  km 704.7	Arroyito
-d3: 383 km, 309 min driving, 3734 pts
-  10:00  km 0	Arroyito
-  10:43  km 58.9	Plaza Huincul · Museo Carmen Funes
-  12:42  km 134.1	ACA Zapala (RN22 km 1401)
-  15:38  km 342.5	Vía Christi · Junín de los Andes
-  17:09  km 383.1	San Martín de los Andes
-import: 200 {"imported":[]}
+preview.yml 2a494d4 completed success
+(Use `node --trace-deprecation ...` to show where the warning was created)
+##[group]Run node --test worker/test/*.test.js && rm -f worker/src/trip.built.js worker/src/race.built.js
+^[[36;1mnode --test worker/test/*.test.js && rm -f worker/src/trip.built.js worker/src/race.built.js^[[0m
+# Subtest: Gran Fondo: race-day locations drive the live view; hotel location stays hidden
+ok 33 - Gran Fondo: race-day locations drive the live view; hotel location stays hidden
+# Subtest: migrates a key from KV once, then never reads KV again
+ok 53 - migrates a key from KV once, then never reads KV again
+##[group]Run node scripts/build-race.mjs
+^[[36;1mnode scripts/build-race.mjs^[[0m
+shell: /usr/bin/bash -e {0}
+env:
+  FORWARD_SECRET: ***
+##[endgroup]
+start: -40.15788,-71.35964 (geocoded)
+finish: -40.76207,-71.64723 (geocoded)
+course: 108.1 km (official 110), 2580 pts
+elevation: +1274 m, 5 climbs auto-detected
+  climb 4-7.25 km 3.3 km @ 4.8%
+  climb 6.75-10.25 km 3.5 km @ 4.3%
+  climb 11.5-15 km 3.5 km @ 4.3%
+  climb 65.75-67.25 km 1.5 km @ 4.1%
+  climb 85.1-87 km 1.9 km @ 7.2% (oficial)
+  climb 96.9-98.1 km 1.2 km @ 6.5% (oficial)
+  lake Lago Lácar: 5.3 km, 4.9 km off
+  lake Lago Machónico: 30.7 km, 0.3 km off
+  lake Lago Falkner: 48.6 km, 3.8 km off
+  lake Lago Villarino: 51.6 km, 1.5 km off
+  lake Lago Espejo: 85.9 km, 5.1 km off
+  lake Lago Correntoso: 95.8 km, 3.0 km off
+  lake Lago Nahuel Huapi: 107.8 km, 20.3 km off
+Built race course
+^[[36;1msleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/"^[[0m
++ /granfondo/race.json
+preview root: 200
+(Use `node --trace-deprecation ...` to show where the warning was created)
+granfondo page: 200
+race.json 108.05 km gain 1274 climbs 6 lakes Lago Lácar@5.3, Lago Machónico@30.7, Lago Falkner@48.6, Lago Villarino@51.6, Lago Espejo@85.9, Lago Correntoso@95.8 profile 433
+{"error":"Link no válido o vencido"} api: 404
+
