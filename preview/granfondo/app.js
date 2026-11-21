@@ -49,18 +49,18 @@
   function renderProfile(km) {
     const P = race.profile || [];
     if (!P.length) { $('profile').innerHTML = '<p class="meta" style="padding:8px">Perfil no disponible.</p>'; return; }
-    const W = 640, H = 180, pad = { l: 36, r: 8, t: 12, b: 26 };
+    const W = Math.max(300, Math.round($('profile').clientWidth - 16)), H = W < 500 ? 170 : 190, pad = { l: 48, r: 8, t: 12, b: 26 };
     const maxE = Math.max(...P.map((p) => p[1])), minE = Math.min(...P.map((p) => p[1]));
     const x = (k) => pad.l + (k / race.totalKm) * (W - pad.l - pad.r);
     const y = (e) => pad.t + (1 - (e - minE) / Math.max(1, maxE - minE)) * (H - pad.t - pad.b);
     const pts = P.map((p) => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
     const area = `M${x(0)},${H - pad.b} L${pts.replace(/ /g, ' L')} L${x(race.totalKm)},${H - pad.b} Z`;
     const climbs = race.climbs.map((c) => `<rect x="${x(c.startKm).toFixed(1)}" y="${pad.t}" width="${Math.max(2, x(c.endKm) - x(c.startKm)).toFixed(1)}" height="${H - pad.t - pad.b}" fill="#ffd200" opacity=".18"/>`).join('');
-    const ticks = [0, 25, 50, 75, 100].filter((k) => k <= race.totalKm).map((k) => `<text x="${x(k)}" y="${H - 8}" fill="#b9c9d8" font-size="12" text-anchor="middle">${k} km</text>`).join('');
+    const ticks = (W < 500 ? [0, 50, 100] : [0, 25, 50, 75, 100]).filter((k) => k <= race.totalKm).map((k) => `<text x="${x(k)}" y="${H - 8}" fill="#b9c9d8" font-size="12" text-anchor="middle">${k} km</text>`).join('');
     const lakes = (race.lakes || []).map((l) => `<line x1="${x(l.km)}" x2="${x(l.km)}" y1="${pad.t}" y2="${H - pad.b}" stroke="#b9c9d8" stroke-dasharray="2 4" opacity=".5"><title>${esc(l.name)}</title></line>`).join('');
     const e = km != null ? (P[Math.min(P.length - 1, Math.round(km / (P[1][0] - P[0][0])))] || P.at(-1))[1] : null;
     const me = km != null ? `<line x1="${x(km)}" x2="${x(km)}" y1="${pad.t}" y2="${H - pad.b}" stroke="#2ee6c5" stroke-width="2"/><circle cx="${x(km)}" cy="${y(e)}" r="6" fill="#2ee6c5" stroke="#06121f" stroke-width="3"/>` : '';
-    $('profile').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    $('profile').innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
       <text x="4" y="${pad.t + 10}" fill="#b9c9d8" font-size="12">${Math.round(maxE)} m</text>
       <text x="4" y="${H - pad.b}" fill="#b9c9d8" font-size="12">${Math.round(minE)} m</text>
       ${climbs}${lakes}
@@ -170,6 +170,7 @@
     if (!key) { $('live-text').textContent = 'Falta el link completo. Abrilo tal cual te lo mandó Lean.'; return; }
     race = await (await fetch('race.json', { cache: 'no-store' })).json();
     initMap(); renderLakeTicks(); setupComposer();
+    let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => renderProfile(data?.live?.started ? data.live.km : null), 200); });
     await poll(); await pollChat();
     setInterval(poll, 30e3); setInterval(pollChat, 20e3);
   }
