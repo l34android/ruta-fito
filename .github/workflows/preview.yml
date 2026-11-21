@@ -32,6 +32,10 @@ jobs:
           F=$(printf '%s' "ruta-fito-forward:$TG_TOKEN" | sha256sum | cut -c1-48)
           echo "::add-mask::$F"
           echo "FORWARD_SECRET=$F" >> "$GITHUB_ENV"
+          K=$(printf '%s' "ruta-fito-karoo:$TG_TOKEN" | sha256sum | cut -c1-64)
+          echo "::add-mask::$K"
+          echo "KAROO_KEY=$K" >> "$GITHUB_ENV"
+          echo "APK_NAME=$(printf '%s' "$K" | sha256sum | cut -c1-24)" >> "$GITHUB_ENV"
 
       - name: Cloudflare bootstrap (preview KV)
         id: cf
@@ -60,6 +64,7 @@ jobs:
           npx --yes wrangler@3 deploy -c wrangler.preview.toml
           printf '%s' "$TG_TOKEN" | npx --yes wrangler@3 secret put TG_TOKEN -c wrangler.preview.toml
           printf '%s' "$FORWARD_SECRET" | npx --yes wrangler@3 secret put FORWARD_SECRET -c wrangler.preview.toml
+          printf '%s' "$KAROO_KEY" | npx --yes wrangler@3 secret put KAROO_KEY -c wrangler.preview.toml
           if [ -n "$SPOTIFY_CLIENT_ID" ] && [ -n "$SPOTIFY_CLIENT_SECRET" ]; then
             printf '%s' "$SPOTIFY_CLIENT_ID" | npx --yes wrangler@3 secret put SPOTIFY_CLIENT_ID -c wrangler.preview.toml
             printf '%s' "$SPOTIFY_CLIENT_SECRET" | npx --yes wrangler@3 secret put SPOTIFY_CLIENT_SECRET -c wrangler.preview.toml

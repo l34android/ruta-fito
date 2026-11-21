@@ -58,7 +58,8 @@ async function onLocation(env, st, msg, room) {
       await room.add({ ts, author: 'Ruta', kind: 'event', text: `${day.label.toUpperCase()}: ¡salieron de ${day.stops[0].name}!` });
     }
   }
-  if (argentinaDate(ts) === course.date || env.RACE_ANY_DAY === '1') { // Gran Fondo day: track progress on the course
+  const karooFresh = pmem.tele?.lat != null && Math.abs(ts - pmem.tele.ts) < KAROO_FRESH_MS;
+  if ((argentinaDate(ts) === course.date || env.RACE_ANY_DAY === '1') && !karooFresh) { // Gran Fondo day: track progress on the course
     const race = updateRace(course, await getJSON(env, 'race'), p, ts);
     writes.push(putJSON(env, 'race', race));
     pmem.cache.delete('granfondo');
@@ -68,7 +69,28 @@ async function onLocation(env, st, msg, room) {
   await Promise.all(writes);
 }
 
-const pmem = { lastPosTs: 0, owner: null, cache: new Map() };
+const pmem = { lastPosTs: 0, owner: null, cache: new Map(), tele: null, teleSavedAt: 0 };
+const KAROO_FRESH_MS = 120e3, SENSOR_MAX_AGE_S = 60, TELE_SAVE_EVERY_MS = 30e3;
+const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
+// ───────── Karoo extension telemetry ─────────
+async function onTelemetry(env, request) {
+  if (!env.KAROO_KEY || request.headers.get('X-Ruta-Key') !== env.KAROO_KEY) return json({ error: 'forbidden' }, 401);
+  let b; try { b = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
+  const at = Date.now();
+  const t = { at, ts: num(b.ts) ?? at, lat: num(b.lat), lon: num(b.lon), hr: num(b.hr), power: num(b.power), cadence: num(b.cadence), speedKmh: num(b.speedKmh), state: String(b.state || '').slice(0, 12) };
+  if (t.lat == null || t.lon == null || Math.abs(t.lat) > 90 || Math.abs(t.lon) > 180) t.lat = t.lon = null;
+  pmem.tele = t;
+  const writes = [];
+  if (t.lat != null && (argentinaDate(t.ts) === course.date || env.RACE_ANY_DAY === '1')) {
+    writes.push(putJSON(env, 'race', updateRace(course, await getJSON(env, 'race'), [t.lon, t.lat], t.ts)));
+  }
+  if (at - pmem.teleSavedAt >= TELE_SAVE_EVERY_MS) { pmem.teleSavedAt = at; writes.push(putJSON(env, 'tele', t)); }
+  await Promise.all(writes);
+  pmem.cache.delete('granfondo');
+  return json({ ok: true });
+}
+const apkName = async (env) => (await sha256hex(env.KAROO_KEY)).slice(0, 24);
 export { pmem };
 
 export async function handleForwarded(env, update, ownerId) {
@@ -97,6 +119,13 @@ export async function handleForwarded(env, update, ownerId) {
     if (!share?.token) { share = { token: crypto.randomUUID().replace(/-/g, '') }; await putJSON(env, 'share', share); }
     await tg(env, 'sendMessage', { chat_id: ownerId, text: `Gran Fondo 7 Lagos, seguimiento en vivo:\n${env.PUBLIC_URL}/granfondo/?k=${share.token}\n\nEl domingo compartime la ubicación en tiempo real antes de largar. Si querés sumar los links de Karoo o Garmin: /seguimiento <link>`, disable_web_page_preview: true });
     return { granfondo: true };
+  }
+  if (cmd === '/karoo') {
+    if (!env.KAROO_KEY) { await tg(env, 'sendMessage', { chat_id: ownerId, text: 'La extensión del Karoo todavía no está configurada en el servidor.' }); return { karoo: 'off' }; }
+    const t = pmem.tele || (await getJSON(env, 'tele'));
+    const last = t ? `Último dato del Karoo: hace ${Math.round((Date.now() - t.at) / 1000)} s (pulso ${t.hr ?? '—'}, potencia ${t.power ?? '—'} W, cadencia ${t.cadence ?? '—'}).` : 'Todavía no llegó ningún dato del Karoo.';
+    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Extensión Ruta Fito para el Karoo:\n${env.PUBLIC_URL}/karoo/${await apkName(env)}.apk\n\nCompartí este link a la app Hammerhead Companion para instalarla. Los datos salen solo mientras grabás una actividad.\n\n${last}`, disable_web_page_preview: true });
+    return { karoo: true };
   }
   if (cmd === '/seguimiento') {
     const arg = text.split(/\s+/)[1] || '';
@@ -213,6 +242,7 @@ export async function handleRequest(request, env, ctx) {
       const share = await getJSON(env, 'share');
       return json({ shareSet: !!share?.token, hashConfigured: !!env.SHARE_SHA256, store: !!env.STORE });
     }
+    if (url.pathname === '/api/telemetry' && request.method === 'POST') return onTelemetry(env, request);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Ruta Fito 8-bit');
     if (!(await authed(env, url))) return json({ error: 'Link no válido o vencido' }, 404);
     const room = roomOf(env);
@@ -230,12 +260,18 @@ export async function handleRequest(request, env, ctx) {
     if (url.pathname === '/api/granfondo') {
       const hit = pmem.cache.get('granfondo');
       if (hit && Date.now() - hit.at < 15e3) return json(hit.body);
-      const [race, links, track] = await Promise.all([getJSON(env, 'race'), getJSON(env, 'gfLinks'), getJSON(env, 'track')]);
+      const [race, links, track, saved] = await Promise.all([getJSON(env, 'race'), getJSON(env, 'gfLinks'), getJSON(env, 'track'), pmem.tele ? null : getJSON(env, 'tele')]);
+      if (!pmem.tele && saved) pmem.tele = saved;
       const now = Date.now();
       const live = raceView(course, race, now, raceData.profile);
-      const pos = track?.pos;
+      const t = pmem.tele;
+      const kpos = t?.lat != null ? { lat: t.lat, lon: t.lon, ts: t.ts } : null;
+      const pos = [track?.pos, kpos].filter(Boolean).sort((a, b) => b.ts - a.ts)[0];
+      const ageSec = t ? Math.max(0, Math.round((now - t.at) / 1000)) : null;
+      const ok = t && ageSec <= SENSOR_MAX_AGE_S;
+      const sensors = t ? { hr: ok ? t.hr : null, power: ok ? t.power : null, cadence: ok ? t.cadence : null, speedKmh: ok ? t.speedKmh : null, ageSec } : null;
       const showPos = !!(race?.start && !race?.offCourse && pos && now - pos.ts < 45 * 60e3);
-      const body = { name: course.name, date: course.date, totalKm: course.totalKm, live, links: links || {},
+      const body = { name: course.name, date: course.date, totalKm: course.totalKm, live, links: links || {}, sensors,
         position: showPos ? { lat: pos.lat, lon: pos.lon, ageMin: Math.round((now - pos.ts) / 60e3) } : null };
       pmem.cache.set('granfondo', { at: now, body });
       return json(body);

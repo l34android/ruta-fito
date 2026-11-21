@@ -162,3 +162,76 @@ test('Gran Fondo: race-day locations drive the live view; hotel location stays h
   assert.equal(v.live.nextClimb.startKm, 87);
   assert.equal((await core.handleRequest(new Request('https://p/api/granfondo?k=nope'), e, {})).status, 404);
 });
+
+// ───────── Karoo telemetry ─────────
+async function karooEnv() {
+  const { storeAdapter, MemoryStore } = await import('../src/state.js');
+  const e = { ...env, KAROO_KEY: 'kk', STATE: storeAdapter(new MemoryStore(), null) };
+  core.pmem.lastPosTs = 0; core.pmem.cache.clear(); core.pmem.tele = null; core.pmem.teleSavedAt = 0;
+  await e.STATE.put('share', JSON.stringify({ token: 'gf' }));
+  return e;
+}
+const lonPerKmK = 1 / 85.24;
+const TK = (h, m, s = 0) => Date.UTC(2026, 10, 22, h + 3, m, s);
+const tele = (e, body, key = 'kk') => core.handleRequest(new Request('https://p/api/telemetry', { method: 'POST', headers: { 'X-Ruta-Key': key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), e, { waitUntil() {} });
+const gfK = async (e) => { core.pmem.cache.clear(); return (await core.handleRequest(new Request('https://p/api/granfondo?k=gf'), e, {})).json(); };
+const sample = (km, ts, extra = {}) => ({ ts, lat: -40, lon: -71.5 + km * lonPerKmK, hr: 150, power: 240, cadence: 90, speedKmh: 30, state: 'recording', ...extra });
+
+test('telemetry rejects wrong key and stores nothing', async () => {
+  const e = await karooEnv();
+  const r = await tele(e, sample(1, TK(8, 0)), 'bad');
+  assert.equal(r.status, 401);
+  assert.equal((await tele(e, sample(1, TK(8, 0)), '')).status, 401);
+  const v = await gfK(e);
+  assert.equal(v.sensors, null);
+});
+
+test('telemetry feeds the race on race day and hides position before the start', async () => {
+  const e = await karooEnv();
+  assert.equal((await tele(e, sample(10, TK(7, 0), { lat: -39.7 }))).status, 200); // hotel, off course
+  let v = await gfK(e);
+  assert.equal(v.live.started, false);
+  assert.equal(v.position, null);
+  assert.equal(v.sensors.hr, 150);
+  await tele(e, sample(0.5, TK(8, 0)));
+  await tele(e, sample(20.5, TK(8, 40)));
+  v = await gfK(e);
+  assert.equal(v.live.started, true);
+  assert.ok(v.live.km > 20 && v.live.km < 21, `km ${v.live.km}`);
+  assert.ok(v.position);
+  assert.deepEqual([v.sensors.hr, v.sensors.power, v.sensors.cadence, v.sensors.speedKmh], [150, 240, 90, 30]);
+});
+
+test('Telegram location is ignored for the race while the Karoo is fresh', async () => {
+  const e = await karooEnv();
+  await tele(e, sample(0.5, TK(8, 0)));
+  await tele(e, sample(20.5, TK(8, 40)));
+  const loc = (km, t) => core.handleRequest(new Request('https://p/tg', { method: 'POST', headers: { 'X-Ruta-Forward': 'fw', 'X-Ruta-Owner': '42' },
+    body: JSON.stringify({ message: { message_id: 1, chat: { id: 42, type: 'private' }, from: { id: 42 }, date: Math.round(t / 1000), location: { latitude: -40, longitude: -71.5 + km * lonPerKmK } } }) }), e, { waitUntil() {} });
+  await loc(30, TK(8, 41)); // phone GPS says km 30, Karoo (1 min ago) says 20.5
+  const v = await gfK(e);
+  assert.ok(v.live.km < 21, `km ${v.live.km}`);
+});
+
+test('sensor values older than 60 s are null; a missing power meter stays null', async () => {
+  const e = await karooEnv();
+  await tele(e, sample(0.5, TK(8, 0), { power: null }));
+  let v = await gfK(e);
+  assert.equal(v.sensors.power, null);
+  assert.equal(v.sensors.hr, 150);
+  core.pmem.tele.at -= 61e3;
+  v = await gfK(e);
+  assert.equal(v.sensors.hr, null);
+  assert.ok(v.sensors.ageSec >= 61);
+});
+
+test('/karoo replies with the APK link to the owner', async () => {
+  const e = await karooEnv();
+  sent = [];
+  await core.handleRequest(new Request('https://p/tg', { method: 'POST', headers: { 'X-Ruta-Forward': 'fw', 'X-Ruta-Owner': '42' },
+    body: JSON.stringify({ message: { message_id: 2, chat: { id: 42, type: 'private' }, from: { id: 42 }, date: 1, text: '/karoo' } }) }), e, { waitUntil() {} });
+  const msg = sent.find((s) => s.body?.text?.includes('/karoo/'));
+  assert.ok(msg, 'no karoo link sent');
+  assert.match(msg.body.text, /https:\/\/preview\.example\/karoo\/[0-9a-f]{24}\.apk/);
+  assert.ok(!msg.body.text.includes('kk'));
+});
