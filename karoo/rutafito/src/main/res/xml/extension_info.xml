@@ -2,4 +2,5 @@
 <ExtensionInfo
     displayName="@string/app_name"
     icon="@drawable/ic_rutafito"
-    id="rutafito" />
+    id="rutafito"
+    scansDevices="false" />

@@ -12,6 +12,8 @@ import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.RideState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.SystemNotification
+import android.content.Context
+import android.util.Log
 import org.json.JSONObject
 import timber.log.Timber
 import kotlin.math.roundToInt
@@ -45,7 +47,13 @@ class RutaExtension : KarooExtension("rutafito", "1") {
 
     override fun onCreate() {
         super.onCreate()
-        karoo.connect { connected -> Timber.i("rutafito connected=$connected") }
+        if (Timber.treeCount == 0) Timber.plant(Timber.DebugTree())
+        Log.i(TAG, "extension created")
+        status("Extensión iniciada")
+        karoo.connect { connected ->
+            Log.i(TAG, "karoo connected=$connected")
+            status(if (connected) "Conectada al Karoo" else "Desconectada del Karoo")
+        }
         stream(DataType.Type.HEART_RATE) { hr = it }
         stream(DataType.Type.SMOOTHED_3S_AVERAGE_POWER) { power = it }
         stream(DataType.Type.CADENCE) { cadence = it }
@@ -58,6 +66,7 @@ class RutaExtension : KarooExtension("rutafito", "1") {
                 else -> "idle"
             }
             if (next == "recording" && state == "idle") { notifiedOk = false; notifiedError = false }
+            if (next != state) { Log.i(TAG, "ride state $next"); status("Actividad: $next") }
             state = next
         }
         handler.postDelayed(tick, SEND_EVERY_MS)
@@ -100,11 +109,13 @@ class RutaExtension : KarooExtension("rutafito", "1") {
                 body = body.toByteArray(),
                 waitForConnection = false,
             ),
-            onError = { msg -> Timber.w("rutafito http error $msg") },
+            onError = { msg -> Log.w(TAG, "http error $msg"); status("Error de envío: $msg") },
         ) { ev ->
             val st = ev.state
             if (st is HttpResponseState.Complete) {
                 karoo.removeConsumer(id)
+                Log.i(TAG, "http ${st.statusCode} ${st.error ?: ""}")
+                status("Último envío: HTTP ${st.statusCode}" + (st.error?.let { " ($it)" } ?: ""))
                 if (st.statusCode == 200 && !notifiedOk) {
                     notifiedOk = true
                     karoo.dispatch(SystemNotification("rutafito-ok", "Ruta Fito: tus datos se ven en vivo"))
@@ -116,7 +127,14 @@ class RutaExtension : KarooExtension("rutafito", "1") {
         }
     }
 
+    private fun status(text: String) {
+        getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("status", text).putLong("at", System.currentTimeMillis()).apply()
+    }
+
     companion object {
+        const val TAG = "rutafito"
+        const val PREFS = "rutafito"
         private const val SEND_EVERY_MS = 15_000L
         private const val LOCATION_MAX_AGE_MS = 30_000L
     }
