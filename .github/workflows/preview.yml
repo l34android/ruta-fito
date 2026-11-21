@@ -52,6 +52,33 @@ jobs:
       - name: Build Gran Fondo course (route, elevation, climbs, lakes)
         run: node scripts/build-race.mjs
 
+      - name: Keep one signing key for the Karoo APK (so updates install over the old one)
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: karoo-debug-keystore-v1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build Karoo extension APK
+        id: karoo
+        continue-on-error: true
+        env:
+          INGEST_URL: ${{ steps.cf.outputs.worker_url }}/api/telemetry
+        run: |
+          git clone -q --depth 1 https://github.com/hammerheadnav/karoo-ext /tmp/karoo-ext
+          echo "karoo-ext $(git -C /tmp/karoo-ext rev-parse --short HEAD)"
+          cp -r karoo/rutafito /tmp/karoo-ext/rutafito
+          sed -i 's/^include(.*/include(":lib", ":rutafito")/' /tmp/karoo-ext/settings.gradle.kts
+          cd /tmp/karoo-ext && ./gradlew --no-daemon --console=plain :rutafito:assembleRelease
+          mkdir -p "$GITHUB_WORKSPACE/dist/preview/karoo"
+          cp rutafito/build/outputs/apk/release/rutafito-release.apk "$GITHUB_WORKSPACE/dist/preview/karoo/$APK_NAME.apk"
+          ls -l "$GITHUB_WORKSPACE/dist/preview/karoo" | sed "s/$APK_NAME/<apk>/"
+          echo "karoo apk built"
+
       - name: Deploy preview Worker (assets + Durable Object)
         working-directory: worker
         env:
@@ -70,6 +97,7 @@ jobs:
             printf '%s' "$SPOTIFY_CLIENT_SECRET" | npx --yes wrangler@3 secret put SPOTIFY_CLIENT_SECRET -c wrangler.preview.toml
           else echo "Spotify secrets not set yet"; fi
           sleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "${{ steps.cf.outputs.worker_url }}/"
+          curl -s -o /dev/null -w "karoo apk: %{http_code} %{size_download} bytes\n" "${{ steps.cf.outputs.worker_url }}/karoo/$APK_NAME.apk"
 
       - name: Migrate KV state into the Durable Object store
         env:
