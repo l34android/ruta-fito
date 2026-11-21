@@ -125,7 +125,21 @@ export async function handleForwarded(env, update, ownerId) {
     if (!env.KAROO_KEY) { await tg(env, 'sendMessage', { chat_id: ownerId, text: 'La extensión del Karoo todavía no está configurada en el servidor.' }); return { karoo: 'off' }; }
     const t = await getJSON(env, 'tele');
     const last = t ? `Último dato del Karoo: hace ${Math.round((Date.now() - t.at) / 1000)} s (pulso ${t.hr ?? '—'}, potencia ${t.power ?? '—'} W, cadencia ${t.cadence ?? '—'}).` : 'Todavía no llegó ningún dato del Karoo.';
-    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Extensión Ruta Fito para el Karoo:\n${env.PUBLIC_URL}/karoo/${await apkName(env)}.apk\n\nCompartí este link a la app Hammerhead Companion para instalarla. Los datos salen solo mientras grabás una actividad.\n\n${last}`, disable_web_page_preview: true });
+    const workerUrl = `${env.PUBLIC_URL}/karoo/${await apkName(env)}.apk`;
+    await tg(env, 'sendMessage', { chat_id: ownerId, text: `Extensión Ruta Fito para el Karoo. El Karoo tiene que estar prendido y conectado a WiFi (sirve el hotspot del teléfono).\n\nOpción 1: mantené apretado el archivo que te mando abajo y compartilo a Hammerhead Companion.\nOpción 2: mantené apretado el link que sigue (solo el link, no este mensaje) y compartilo a Hammerhead Companion.\n\n${last}`, disable_web_page_preview: true });
+    await tg(env, 'sendMessage', { chat_id: ownerId, text: workerUrl, disable_web_page_preview: true });
+    if (env.ASSETS) { // the APK itself, to share as a file
+      try {
+        const apk = await env.ASSETS.fetch(new Request(workerUrl));
+        if (apk.ok) {
+          const form = new FormData();
+          form.append('chat_id', String(ownerId));
+          form.append('document', new Blob([await apk.arrayBuffer()], { type: 'application/vnd.android.package-archive' }), 'RutaFito.apk');
+          const r = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/sendDocument`, { method: 'POST', body: form });
+          if (!r.ok) console.error('sendDocument', r.status, await r.text());
+        }
+      } catch (e) { console.error('karoo apk send failed', e); }
+    }
     return { karoo: true };
   }
   if (cmd === '/seguimiento') {
