@@ -1,41 +1,31 @@
 deploy.yml 2eca2fa completed success
-preview.yml 2a494d4 completed success
-(Use `node --trace-deprecation ...` to show where the warning was created)
-##[group]Run node --test worker/test/*.test.js && rm -f worker/src/trip.built.js worker/src/race.built.js
-^[[36;1mnode --test worker/test/*.test.js && rm -f worker/src/trip.built.js worker/src/race.built.js^[[0m
-# Subtest: Gran Fondo: race-day locations drive the live view; hotel location stays hidden
-ok 33 - Gran Fondo: race-day locations drive the live view; hotel location stays hidden
-# Subtest: migrates a key from KV once, then never reads KV again
-ok 53 - migrates a key from KV once, then never reads KV again
-##[group]Run node scripts/build-race.mjs
-^[[36;1mnode scripts/build-race.mjs^[[0m
-shell: /usr/bin/bash -e {0}
-env:
-  FORWARD_SECRET: ***
-##[endgroup]
-start: -40.15788,-71.35964 (geocoded)
-finish: -40.76207,-71.64723 (geocoded)
-course: 108.1 km (official 110), 2580 pts
-elevation: +1274 m, 5 climbs auto-detected
-  climb 4-7.25 km 3.3 km @ 4.8%
-  climb 6.75-10.25 km 3.5 km @ 4.3%
-  climb 11.5-15 km 3.5 km @ 4.3%
-  climb 65.75-67.25 km 1.5 km @ 4.1%
-  climb 85.1-87 km 1.9 km @ 7.2% (oficial)
-  climb 96.9-98.1 km 1.2 km @ 6.5% (oficial)
-  lake Lago Lácar: 5.3 km, 4.9 km off
-  lake Lago Machónico: 30.7 km, 0.3 km off
-  lake Lago Falkner: 48.6 km, 3.8 km off
-  lake Lago Villarino: 51.6 km, 1.5 km off
-  lake Lago Espejo: 85.9 km, 5.1 km off
-  lake Lago Correntoso: 95.8 km, 3.0 km off
-  lake Lago Nahuel Huapi: 107.8 km, 20.3 km off
-Built race course
+preview.yml d8046d8 completed success
+# Subtest: /karoo replies with the APK link to the owner
+ok 38 - /karoo replies with the APK link to the owner
+##[group]Run test -n "$TG_TOKEN" || { echo "::error::Falta el secreto TG_TOKEN"; exit 1; }
+^[[36;1mtest -n "$TG_TOKEN" || { echo "::error::Falta el secreto TG_TOKEN"; exit 1; }^[[0m
+^[[36;1mK=$(printf '%s' "ruta-fito-karoo:$TG_TOKEN" | sha256sum | cut -c1-64)^[[0m
+  key: karoo-debug-keystore-v1
+Cache not found for input keys: karoo-debug-keystore-v1
+##[group]Run git clone -q --depth 1 https://github.com/hammerheadnav/karoo-ext /tmp/karoo-ext
+^[[36;1mgit clone -q --depth 1 https://github.com/hammerheadnav/karoo-ext /tmp/karoo-ext^[[0m
+^[[36;1mecho "karoo-ext $(git -C /tmp/karoo-ext rev-parse --short HEAD)"^[[0m
+^[[36;1mcp -r karoo/rutafito /tmp/karoo-ext/rutafito^[[0m
+^[[36;1msed -i 's/^include(.*/include(":lib", ":rutafito")/' /tmp/karoo-ext/settings.gradle.kts^[[0m
+^[[36;1mcd /tmp/karoo-ext && ./gradlew --no-daemon --console=plain :rutafito:assembleRelease^[[0m
+^[[36;1mmkdir -p "$GITHUB_WORKSPACE/dist/preview/karoo"^[[0m
+^[[36;1mcp rutafito/build/outputs/apk/release/rutafito-release.apk "$GITHUB_WORKSPACE/dist/preview/karoo/$APK_NAME.apk"^[[0m
+^[[36;1mls -l "$GITHUB_WORKSPACE/dist/preview/karoo" | sed "s/$APK_NAME/<apk>/"^[[0m
+^[[36;1mecho "karoo apk built"^[[0m
+karoo-ext f79f103
+> Task :rutafito:compileReleaseShaders NO-SOURCE
+> Task :rutafito:compileReleaseKotlin
+> Task :rutafito:compileReleaseJavaWithJavac
+> Task :rutafito:compileReleaseArtProfile
+BUILD SUCCESSFUL in 1m 43s
+karoo apk built
 ^[[36;1msleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/"^[[0m
-+ /granfondo/race.json
+^[[36;1mcurl -s -o /dev/null -w "karoo apk: %{http_code} %{size_download} bytes\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/karoo/$APK_NAME.apk"^[[0m
++ /karoo/f614e4e4ba2376f7940aedb8.apk
 preview root: 200
-(Use `node --trace-deprecation ...` to show where the warning was created)
-granfondo page: 200
-race.json 108.05 km gain 1274 climbs 6 lakes Lago Lácar@5.3, Lago Machónico@30.7, Lago Falkner@48.6, Lago Villarino@51.6, Lago Espejo@85.9, Lago Correntoso@95.8 profile 433
-{"error":"Link no válido o vencido"} api: 404
-
+karoo apk: 200 2880808 bytes
