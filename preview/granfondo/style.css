@@ -134,7 +134,6 @@ input:focus, textarea:focus { outline: 3px solid var(--accent); outline-offset: 
   :root { --gap: 8px; }
   .climb { margin-top: var(--s2); padding-top: var(--s2); }
   .bar { margin: 6px 0 var(--s2); }
-  .sensors-note { display: none; }
 }
 @media (min-width: 900px) {
   .hud, .sensors { left: 16px; right: auto; width: 400px; }

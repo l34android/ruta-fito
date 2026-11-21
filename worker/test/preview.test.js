@@ -167,7 +167,7 @@ test('Gran Fondo: race-day locations drive the live view; hotel location stays h
 async function karooEnv() {
   const { storeAdapter, MemoryStore } = await import('../src/state.js');
   const e = { ...env, KAROO_KEY: 'kk', STATE: storeAdapter(new MemoryStore(), null) };
-  core.pmem.lastPosTs = 0; core.pmem.cache.clear(); core.pmem.tele = null; core.pmem.teleSavedAt = 0;
+  core.pmem.lastPosTs = 0; core.pmem.cache.clear(); core.pmem.tele = null;
   await e.STATE.put('share', JSON.stringify({ token: 'gf' }));
   return e;
 }
@@ -219,7 +219,7 @@ test('sensor values older than 60 s are null; a missing power meter stays null',
   let v = await gfK(e);
   assert.equal(v.sensors.power, null);
   assert.equal(v.sensors.hr, 150);
-  core.pmem.tele.at -= 61e3;
+  const st = await e.STATE.get('tele', 'json'); await e.STATE.put('tele', JSON.stringify({ ...st, at: st.at - 61e3 }));
   v = await gfK(e);
   assert.equal(v.sensors.hr, null);
   assert.ok(v.sensors.ageSec >= 61);
@@ -234,4 +234,26 @@ test('/karoo replies with the APK link to the owner', async () => {
   assert.ok(msg, 'no karoo link sent');
   assert.match(msg.body.text, /https:\/\/preview\.example\/karoo\/[0-9a-f]{24}\.apk/);
   assert.ok(!msg.body.text.includes('kk'));
+});
+
+test('sensors come from storage, not a stale per-isolate copy', async () => {
+  const e = await karooEnv();
+  await tele(e, sample(0.5, TK(8, 0), { hr: 120 }));
+  await gfK(e); // this isolate now holds a copy
+  // another isolate stores a newer sample
+  await e.STATE.put('tele', JSON.stringify({ ...sample(1, TK(8, 1), { hr: 171 }), at: Date.now() }));
+  const v = await gfK(e);
+  assert.equal(v.sensors.hr, 171);
+});
+
+test('Telegram is ignored for the race even when the Karoo posted to another isolate', async () => {
+  const e = await karooEnv();
+  await tele(e, sample(0.5, TK(8, 0)));
+  await tele(e, sample(20.5, TK(8, 40)));
+  core.pmem.tele = null; // the Telegram webhook lands on a different isolate
+  await core.handleRequest(new Request('https://p/tg', { method: 'POST', headers: { 'X-Ruta-Forward': 'fw', 'X-Ruta-Owner': '42' },
+    body: JSON.stringify({ message: { message_id: 1, chat: { id: 42, type: 'private' }, from: { id: 42 }, date: Math.round(TK(8, 41) / 1000), location: { latitude: -40, longitude: -71.5 + 30 * lonPerKmK } } }) }), e, { waitUntil() {} });
+  const v = await gfK(e);
+  assert.ok(v.live.km < 21, `km ${v.live.km}`);
+  assert.ok(Math.abs(v.position.lon - (-71.5 + 20.5 * lonPerKmK)) < 1e-6, 'marker must follow the Karoo while it is fresh');
 });

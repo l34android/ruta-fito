@@ -58,7 +58,8 @@ async function onLocation(env, st, msg, room) {
       await room.add({ ts, author: 'Ruta', kind: 'event', text: `${day.label.toUpperCase()}: ¡salieron de ${day.stops[0].name}!` });
     }
   }
-  const karooFresh = pmem.tele?.lat != null && Math.abs(ts - pmem.tele.ts) < KAROO_FRESH_MS;
+  const kt = await getJSON(env, 'tele'); // storage, not pmem: the Karoo may post to another isolate
+  const karooFresh = kt?.lat != null && Math.abs(ts - kt.ts) < KAROO_FRESH_MS;
   if ((argentinaDate(ts) === course.date || env.RACE_ANY_DAY === '1') && !karooFresh) { // Gran Fondo day: track progress on the course
     const race = updateRace(course, await getJSON(env, 'race'), p, ts);
     writes.push(putJSON(env, 'race', race));
@@ -69,8 +70,8 @@ async function onLocation(env, st, msg, room) {
   await Promise.all(writes);
 }
 
-const pmem = { lastPosTs: 0, owner: null, cache: new Map(), tele: null, teleSavedAt: 0 };
-const KAROO_FRESH_MS = 120e3, SENSOR_MAX_AGE_S = 60, TELE_SAVE_EVERY_MS = 30e3;
+const pmem = { lastPosTs: 0, owner: null, cache: new Map(), tele: null };
+const KAROO_FRESH_MS = 120e3, SENSOR_MAX_AGE_S = 60;
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
 // ───────── Karoo extension telemetry ─────────
@@ -85,7 +86,7 @@ async function onTelemetry(env, request) {
   if (t.lat != null && (argentinaDate(t.ts) === course.date || env.RACE_ANY_DAY === '1')) {
     writes.push(putJSON(env, 'race', updateRace(course, await getJSON(env, 'race'), [t.lon, t.lat], t.ts)));
   }
-  if (at - pmem.teleSavedAt >= TELE_SAVE_EVERY_MS) { pmem.teleSavedAt = at; writes.push(putJSON(env, 'tele', t)); }
+  writes.push(putJSON(env, 'tele', t)); // every sample (15 s): readers on other isolates depend on it
   await Promise.all(writes);
   pmem.cache.delete('granfondo');
   return json({ ok: true });
@@ -122,7 +123,7 @@ export async function handleForwarded(env, update, ownerId) {
   }
   if (cmd === '/karoo') {
     if (!env.KAROO_KEY) { await tg(env, 'sendMessage', { chat_id: ownerId, text: 'La extensión del Karoo todavía no está configurada en el servidor.' }); return { karoo: 'off' }; }
-    const t = pmem.tele || (await getJSON(env, 'tele'));
+    const t = await getJSON(env, 'tele');
     const last = t ? `Último dato del Karoo: hace ${Math.round((Date.now() - t.at) / 1000)} s (pulso ${t.hr ?? '—'}, potencia ${t.power ?? '—'} W, cadencia ${t.cadence ?? '—'}).` : 'Todavía no llegó ningún dato del Karoo.';
     await tg(env, 'sendMessage', { chat_id: ownerId, text: `Extensión Ruta Fito para el Karoo:\n${env.PUBLIC_URL}/karoo/${await apkName(env)}.apk\n\nCompartí este link a la app Hammerhead Companion para instalarla. Los datos salen solo mientras grabás una actividad.\n\n${last}`, disable_web_page_preview: true });
     return { karoo: true };
@@ -260,13 +261,12 @@ export async function handleRequest(request, env, ctx) {
     if (url.pathname === '/api/granfondo') {
       const hit = pmem.cache.get('granfondo');
       if (hit && Date.now() - hit.at < 15e3) return json(hit.body);
-      const [race, links, track, saved] = await Promise.all([getJSON(env, 'race'), getJSON(env, 'gfLinks'), getJSON(env, 'track'), pmem.tele ? null : getJSON(env, 'tele')]);
-      if (!pmem.tele && saved) pmem.tele = saved;
+      const [race, links, track, t] = await Promise.all([getJSON(env, 'race'), getJSON(env, 'gfLinks'), getJSON(env, 'track'), getJSON(env, 'tele')]);
       const now = Date.now();
       const live = raceView(course, race, now, raceData.profile);
-      const t = pmem.tele;
       const kpos = t?.lat != null ? { lat: t.lat, lon: t.lon, ts: t.ts } : null;
-      const pos = [track?.pos, kpos].filter(Boolean).sort((a, b) => b.ts - a.ts)[0];
+      // While the Karoo is fresh it is the only position source (same rule as the race progress).
+      const pos = kpos && (!track?.pos || track.pos.ts - kpos.ts < KAROO_FRESH_MS) ? kpos : track?.pos;
       const ageSec = t ? Math.max(0, Math.round((now - t.at) / 1000)) : null;
       const ok = t && ageSec <= SENSOR_MAX_AGE_S;
       const sensors = t ? { hr: ok ? t.hr : null, power: ok ? t.power : null, cadence: ok ? t.cadence : null, speedKmh: ok ? t.speedKmh : null, ageSec } : null;

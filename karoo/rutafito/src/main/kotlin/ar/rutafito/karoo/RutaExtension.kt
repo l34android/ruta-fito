@@ -31,6 +31,7 @@ class RutaExtension : KarooExtension("rutafito", "1") {
     @Volatile private var speedMs: Double? = null
     @Volatile private var lat: Double? = null
     @Volatile private var lon: Double? = null
+    @Volatile private var locAt = 0L
     @Volatile private var state = "idle"
     @Volatile private var notifiedOk = false
     @Volatile private var notifiedError = false
@@ -49,7 +50,7 @@ class RutaExtension : KarooExtension("rutafito", "1") {
         stream(DataType.Type.SMOOTHED_3S_AVERAGE_POWER) { power = it }
         stream(DataType.Type.CADENCE) { cadence = it }
         stream(DataType.Type.SPEED) { speedMs = it }
-        consumers += karoo.addConsumer<OnLocationChanged> { lat = it.lat; lon = it.lng }
+        consumers += karoo.addConsumer<OnLocationChanged> { lat = it.lat; lon = it.lng; locAt = System.currentTimeMillis() }
         consumers += karoo.addConsumer<RideState> { s ->
             val next = when (s) {
                 is RideState.Recording -> "recording"
@@ -78,11 +79,13 @@ class RutaExtension : KarooExtension("rutafito", "1") {
 
     private fun send() {
         if (state == "idle" || BuildConfig.INGEST_URL.isEmpty()) return
+        // Without a recent GPS fix, send no position so the server falls back to the phone.
+        val fresh = System.currentTimeMillis() - locAt < LOCATION_MAX_AGE_MS
         val body = JSONObject()
             .put("ts", System.currentTimeMillis())
             .put("state", state)
-            .putOpt("lat", lat)
-            .putOpt("lon", lon)
+            .putOpt("lat", if (fresh) lat else null)
+            .putOpt("lon", if (fresh) lon else null)
             .putOpt("hr", hr?.roundToInt())
             .putOpt("power", power?.roundToInt())
             .putOpt("cadence", cadence?.roundToInt())
@@ -115,5 +118,6 @@ class RutaExtension : KarooExtension("rutafito", "1") {
 
     companion object {
         private const val SEND_EVERY_MS = 15_000L
+        private const val LOCATION_MAX_AGE_MS = 30_000L
     }
 }
