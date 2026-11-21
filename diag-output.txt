@@ -1,5 +1,5 @@
 deploy.yml 2eca2fa completed success
-preview.yml d8046d8 completed success
+preview.yml e1f0031 completed success
 # Subtest: /karoo replies with the APK link to the owner
 ok 38 - /karoo replies with the APK link to the owner
 ##[group]Run test -n "$TG_TOKEN" || { echo "::error::Falta el secreto TG_TOKEN"; exit 1; }
@@ -22,10 +22,10 @@ karoo-ext f79f103
 > Task :rutafito:compileReleaseKotlin
 > Task :rutafito:compileReleaseJavaWithJavac
 > Task :rutafito:compileReleaseArtProfile
-BUILD SUCCESSFUL in 1m 43s
+BUILD SUCCESSFUL in 1m 46s
 karoo apk built
 ^[[36;1msleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/"^[[0m
 ^[[36;1mcurl -s -o /dev/null -w "karoo apk: %{http_code} %{size_download} bytes\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/karoo/$APK_NAME.apk"^[[0m
 + /karoo/f614e4e4ba2376f7940aedb8.apk
 preview root: 200
-karoo apk: 200 2880808 bytes
+karoo apk: 200 2881079 bytes
