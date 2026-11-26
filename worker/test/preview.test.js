@@ -1,4 +1,5 @@
-import { test, before } from 'node:test';
+import { test, before, afterEach } from 'node:test';
+const REAL_NOW = Date.now;
 import assert from 'node:assert/strict';
 import { ensureMockTrip } from './_mocktrip.js';
 import { validateFamilyMessage, telegramPostFromOwner, MemoryRoom, makeLimiter } from '../src/chat.js';
@@ -143,6 +144,7 @@ test('Gran Fondo: race-day locations drive the live view; hotel location stays h
   const { storeAdapter, MemoryStore } = await import('../src/state.js');
   const e = { ...env, STATE: storeAdapter(new MemoryStore(), null) };
   core.pmem.lastPosTs = 0; core.pmem.cache.clear();
+  pinRaceMorning();
   await e.STATE.put('share', JSON.stringify({ token: 'gf' }));
   const lonPerKm = 1 / 85.24;
   const T = (h, m) => Math.round(Date.UTC(2026, 10, 22, h + 3, m) / 1000);
@@ -165,6 +167,7 @@ test('Gran Fondo: race-day locations drive the live view; hotel location stays h
 
 // ───────── Karoo telemetry ─────────
 async function karooEnv() {
+  pinRaceMorning();
   const { storeAdapter, MemoryStore } = await import('../src/state.js');
   const e = { ...env, KAROO_KEY: 'kk', STATE: storeAdapter(new MemoryStore(), null) };
   core.pmem.lastPosTs = 0; core.pmem.cache.clear(); core.pmem.tele = null;
@@ -257,3 +260,7 @@ test('Telegram is ignored for the race even when the Karoo posted to another iso
   assert.ok(v.live.km < 21, `km ${v.live.km}`);
   assert.ok(Math.abs(v.position.lon - (-71.5 + 20.5 * lonPerKmK)) < 1e-6, 'marker must follow the Karoo while it is fresh');
 });
+
+// Gran Fondo views hide positions older than 45 min, so those tests run with the clock on race morning (09:00 ART).
+function pinRaceMorning() { Date.now = () => Date.UTC(2026, 10, 22, 12, 0); }
+afterEach(() => { Date.now = REAL_NOW; });
