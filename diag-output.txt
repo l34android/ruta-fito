@@ -1,31 +1,8 @@
-deploy.yml 2eca2fa completed success
-preview.yml f731c63 completed success
-# Subtest: /karoo replies with the APK link to the owner
-ok 38 - /karoo replies with the APK link to the owner
-##[group]Run test -n "$TG_TOKEN" || { echo "::error::Falta el secreto TG_TOKEN"; exit 1; }
-^[[36;1mtest -n "$TG_TOKEN" || { echo "::error::Falta el secreto TG_TOKEN"; exit 1; }^[[0m
-^[[36;1mK=$(printf '%s' "ruta-fito-karoo:$TG_TOKEN" | sha256sum | cut -c1-64)^[[0m
-  key: karoo-debug-keystore-v1
-Cache not found for input keys: karoo-debug-keystore-v1
-##[group]Run git clone -q --depth 1 https://github.com/hammerheadnav/karoo-ext /tmp/karoo-ext
-^[[36;1mgit clone -q --depth 1 https://github.com/hammerheadnav/karoo-ext /tmp/karoo-ext^[[0m
-^[[36;1mecho "karoo-ext $(git -C /tmp/karoo-ext rev-parse --short HEAD)"^[[0m
-^[[36;1mcp -r karoo/rutafito /tmp/karoo-ext/rutafito^[[0m
-^[[36;1msed -i 's/^include(.*/include(":lib", ":rutafito")/' /tmp/karoo-ext/settings.gradle.kts^[[0m
-^[[36;1mcd /tmp/karoo-ext && ./gradlew --no-daemon --console=plain :rutafito:assembleRelease^[[0m
-^[[36;1mmkdir -p "$GITHUB_WORKSPACE/dist/preview/karoo"^[[0m
-^[[36;1mcp rutafito/build/outputs/apk/release/rutafito-release.apk "$GITHUB_WORKSPACE/dist/preview/karoo/$APK_NAME.apk"^[[0m
-^[[36;1mls -l "$GITHUB_WORKSPACE/dist/preview/karoo" | sed "s/$APK_NAME/<apk>/"^[[0m
-^[[36;1mecho "karoo apk built"^[[0m
-karoo-ext f79f103
-> Task :rutafito:compileReleaseShaders NO-SOURCE
-> Task :rutafito:compileReleaseKotlin
-> Task :rutafito:compileReleaseJavaWithJavac
-> Task :rutafito:compileReleaseArtProfile
-BUILD SUCCESSFUL in 1m 46s
-karoo apk built
-^[[36;1msleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/"^[[0m
-^[[36;1mcurl -s -o /dev/null -w "karoo apk: %{http_code} %{size_download} bytes\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/karoo/$APK_NAME.apk"^[[0m
-+ /karoo/f614e4e4ba2376f7940aedb8.apk
-preview root: 200
-karoo apk: 200 2882513 bytes
+Piedra del Águila, Neuquén => [-40.0485524,-70.075178,"Municipio de Piedra del Águila, Departamento Collón Curá, Ne"]
+Villa El Chocón, Neuquén => [-39.2611427,-68.7837698,"Municipio de Villa El Chocón, Departamento Confluencia, Neuq"]
+Choele Choel, Río Negro => [-39.2932355,-65.6615828,"Choele Choel, Municipio de Choele Choel, Departamento Avella"]
+Plaza Moreno, La Plata => [-34.9206722,-57.9561499,"Plaza Moreno, Calle 50, La Plata, Partido de La Plata, Bueno"]
+Isla 92, Choele Choel => [-39.2986781,-65.6635207,"Isla 92, Choele Choel, Municipio de Choele Choel, Departamen"]
+v1 620 km 528 min legs 158km/163m 151km/112m 312km/253m
+v2 410 km 308 min legs 2km/3m 141km/104m 161km/121m 106km/81m
+v3 565 km 432 min legs 220km/159m 48km/37m 162km/124m 135km/111m
