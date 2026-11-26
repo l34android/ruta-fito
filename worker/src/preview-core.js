@@ -4,7 +4,7 @@
 // SILENT: never sends trip alerts; only room messages (silently) and the /prueba link.
 import trip from './trip.built.js';
 import { pickDay, argentinaDate, detectVisit, formatClock } from './logic.js';
-import { loadState, buildView, publicView } from './index.js';
+import { loadState, buildView, publicView, legOf } from './index.js';
 import { validateFamilyMessage, telegramPostFromOwner } from './chat.js';
 import { authorizeUrl, exchangeCode, nowPlaying, parseNowPlaying, _mem as spMem } from './spotify.js';
 import raceData from './race.built.js';
@@ -34,7 +34,8 @@ async function onLocation(env, st, msg, room) {
   if (st.track.pos && ts - st.track.pos.ts < POS_WRITE_EVERY_MS) { pmem.lastPosTs = Math.max(pmem.lastPosTs, st.track.pos.ts); return; }
   const pos = { lat: msg.location.latitude, lon: msg.location.longitude, ts };
   const p = [pos.lon, pos.lat];
-  const { day, proj } = pickDay(p, days, argentinaDate(ts));
+  const leg = legOf(ts); // ida and vuelta share roads: only the current leg's days can match
+  const { day, proj } = pickDay(p, days.filter((d) => (d.leg || 'ida') === leg), argentinaDate(ts));
   const history = (st.track.history || []).concat({ km: proj.km, ts, day: day.id }).slice(-12);
   let near = st.track.near || null;
   const writes = [];

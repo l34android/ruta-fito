@@ -1,5 +1,5 @@
 {
-  "title": "Ruta Fito · Berisso → San Martín de los Andes",
+  "title": "Ruta Fito · Berisso ⇄ San Martín de los Andes",
   "vehicle": "Ford Ranger 2.0 biturbo XLT 2023 · autonomía ~600 km",
   "fuelRuleKm": 450,
   "destination": {
@@ -78,7 +78,8 @@
           "detourKm": 2,
           "fuel": false
         }
-      ]
+      ],
+      "leg": "ida"
     },
     {
       "id": "d2",
@@ -164,7 +165,8 @@
           "detourKm": 0,
           "fuel": false
         }
-      ]
+      ],
+      "leg": "ida"
     },
     {
       "id": "d3",
@@ -232,6 +234,216 @@
           "lon": -71.33771,
           "description": "Llegada. A pocas cuadras está la costanera del lago Lácar. ACA en Av. Koessler para cargar al llegar.",
           "fito": "Costanera del Lácar para el paseo de llegada.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": false
+        }
+      ],
+      "leg": "ida"
+    },
+    {
+      "id": "v1",
+      "leg": "vuelta",
+      "date": "2026-11-26",
+      "label": "Vuelta 1 · Jue 26",
+      "departure": "15:00",
+      "stops": [
+        {
+          "id": "v1-salida",
+          "type": "salida",
+          "name": "San Martín de los Andes",
+          "lat": -40.15299,
+          "lon": -71.33771,
+          "description": "Arranca la vuelta. Salí con el tanque lleno y compartí la ubicación en tiempo real con el bot.",
+          "fito": "Paseo corto por la costanera del Lácar antes de subir.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": false
+        },
+        {
+          "id": "v1-piedra",
+          "type": "nafta",
+          "name": "Piedra del Águila (RN237)",
+          "lat": -40.0485524,
+          "lon": -70.075178,
+          "description": "Carga de nafta y café en las estaciones del pueblo, sobre la RN237. Después sigue la costa de los embalses del Limay.",
+          "fito": "Parada para estirar con correa: hay viento y tránsito pesado.",
+          "dwellMin": 25,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": true
+        },
+        {
+          "id": "v1-chocon",
+          "type": "noche",
+          "name": "Villa El Chocón",
+          "lat": -39.2611427,
+          "lon": -68.7837698,
+          "description": "Noche frente al lago Ezequiel Ramos Mexía. Llegás con luz. Mañana es el día largo: salí temprano.",
+          "fito": "Costa del lago y Bahía Boca del Sapo para caminar al atardecer.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 3,
+          "fuel": false
+        }
+      ]
+    },
+    {
+      "id": "v2",
+      "leg": "vuelta",
+      "date": "2026-11-27",
+      "label": "Vuelta 2 · Vie 27",
+      "departure": "08:00",
+      "stops": [
+        {
+          "id": "v2-salida",
+          "type": "salida",
+          "name": "Villa El Chocón",
+          "lat": -39.2611427,
+          "lon": -68.7837698,
+          "description": "Día largo hasta Villa Ventana. Cargá nafta antes de salir (en la villa o en Neuquén) y compartí de nuevo la ubicación.",
+          "fito": "Paseo por la costa antes de cargarlo.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": false
+        },
+        {
+          "id": "v2-regina",
+          "type": "descanso",
+          "name": "Isla 58 · Villa Regina",
+          "lat": -39.16392,
+          "lon": -67.10608,
+          "description": "Primer descanso, después de cruzar Neuquén y el Alto Valle.",
+          "fito": "Isla con césped, sombra y río: el mejor descanso de la mañana para Fito.",
+          "dwellMin": 30,
+          "aca": false,
+          "detourKm": 2,
+          "fuel": false
+        },
+        {
+          "id": "v2-choele",
+          "type": "nafta",
+          "name": "ACA Choele Choel (RN22 km 997)",
+          "lat": -39.28162,
+          "lon": -65.6663,
+          "description": "Carga de nafta antes del tramo largo hacia Río Colorado y Bahía Blanca.",
+          "fito": "Parada corta para estirar, con correa.",
+          "dwellMin": 20,
+          "aca": true,
+          "detourKm": 0,
+          "fuel": true
+        },
+        {
+          "id": "v2-colorado",
+          "type": "descanso",
+          "name": "ACA Río Colorado (RN22 km 859)",
+          "lat": -38.97338,
+          "lon": -64.10458,
+          "description": "Almuerzo tardío o merienda. Mitad del tramo hacia Bahía Blanca.",
+          "fito": "Zona verde al costado de la estación para caminar.",
+          "dwellMin": 35,
+          "aca": true,
+          "detourKm": 0,
+          "fuel": false
+        },
+        {
+          "id": "v2-bahia",
+          "type": "nafta",
+          "name": "ACA Bahía Blanca (Villa Bordeu)",
+          "lat": -38.70085,
+          "lon": -62.33326,
+          "description": "Última carga del día antes de subir a las sierras.",
+          "fito": "Estirar las patas antes del último tramo.",
+          "dwellMin": 20,
+          "aca": true,
+          "detourKm": 0,
+          "fuel": true
+        },
+        {
+          "id": "v2-ventana",
+          "type": "noche",
+          "name": "Villa Ventana",
+          "lat": -38.07857,
+          "lon": -61.92812,
+          "description": "Llegada a Villa Ventana. Sábado 28: día libre acá, sin ruta. La vuelta sigue el domingo 29.",
+          "fito": "Dos noches en las sierras: arroyos, senderos y sombra para Fito.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": false
+        }
+      ]
+    },
+    {
+      "id": "v3",
+      "leg": "vuelta",
+      "date": "2026-11-29",
+      "label": "Vuelta 3 · Dom 29",
+      "departure": "09:30",
+      "stops": [
+        {
+          "id": "v3-salida",
+          "type": "salida",
+          "name": "Villa Ventana",
+          "lat": -38.07857,
+          "lon": -61.92812,
+          "description": "Último día: de las sierras a casa. Compartí la ubicación en tiempo real con el bot.",
+          "fito": "Paseo corto por el arroyo antes de salir.",
+          "dwellMin": 0,
+          "aca": false,
+          "detourKm": 0,
+          "fuel": false
+        },
+        {
+          "id": "v3-olavarria",
+          "type": "nafta",
+          "name": "ACA Olavarría",
+          "lat": -36.9097,
+          "lon": -60.31249,
+          "description": "Carga de nafta, la misma estación de la ida.",
+          "fito": "Parada corta para estirar, con correa.",
+          "dwellMin": 20,
+          "aca": true,
+          "detourKm": 0,
+          "fuel": true
+        },
+        {
+          "id": "v3-azul",
+          "type": "descanso",
+          "name": "Balneario Municipal de Azul",
+          "lat": -36.79619,
+          "lon": -59.88442,
+          "description": "Descanso largo junto al arroyo Azul, como a la ida.",
+          "fito": "Mucho verde y sombra: almuerzo con Fito.",
+          "dwellMin": 45,
+          "aca": false,
+          "detourKm": 3,
+          "fuel": false
+        },
+        {
+          "id": "v3-gorchs",
+          "type": "descanso",
+          "name": "ACA Gorchs (RN3 km 143)",
+          "lat": -35.70025,
+          "lon": -58.88974,
+          "description": "Último descanso antes de entrar al conurbano.",
+          "fito": "Estirar las patas: la última hora y media es con tránsito.",
+          "dwellMin": 20,
+          "aca": true,
+          "detourKm": 0,
+          "fuel": false
+        },
+        {
+          "id": "v3-destino",
+          "type": "destino",
+          "name": "La Plata",
+          "lat": -34.9206722,
+          "lon": -57.9561499,
+          "description": "Fin de la travesía. ¡Bienvenidos a casa!",
+          "fito": "Fito llegó: agua fresca y siesta.",
           "dwellMin": 0,
           "aca": false,
           "detourKm": 0,

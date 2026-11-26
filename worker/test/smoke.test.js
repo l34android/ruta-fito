@@ -149,3 +149,25 @@ test('/reset keeps owner, link and family', async () => {
   assert.equal(kv.get('track'), undefined);
   assert.ok(kv.get('share') && kv.get('family') && kv.get('owner'));
 });
+
+test('vuelta: positions on the overlapping RN33 match the return leg, not the ida', async () => {
+  const realNow = Date.now;
+  const b = stop('v2-bahia'), v = stop('v2-ventana');
+  const [lat, lon] = lerp(b, v, 0.5);
+  kv.set('track', JSON.stringify({ pos: { lat, lon, ts: T(17, 30, 27) }, history: [] }));
+  kv.set('fuel', JSON.stringify({ odo: 1650, at: T(9, 0, 20), stopId: 'd3-zapala' })); // last fill on the ida
+  Date.now = () => T(17, 31, 27); worker.mem.cache.clear();
+  assert.equal(worker.legOf(Date.now()), 'vuelta');
+  const st = await (await worker.default.fetch(new Request('https://w/status'), env)).json();
+  assert.equal(st.dayId, 'v2');
+  assert.equal(st.next.id, 'v2-ventana');
+  assert.ok(st.fuel.sinceKm >= 0 && st.fuel.sinceKm < 1200, `sinceKm ${st.fuel.sinceKm}`);
+  Date.now = realNow;
+});
+
+test('legOf: ida until the first vuelta date', async () => {
+  assert.equal(worker.legOf(T(12, 0, 18)), 'ida');
+  assert.equal(worker.legOf(T(12, 0, 25)), 'ida');
+  assert.equal(worker.legOf(T(16, 0, 26)), 'vuelta');
+  assert.equal(worker.legOf(T(12, 0, 28)), 'vuelta'); // rest day in Villa Ventana
+});

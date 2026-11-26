@@ -19,7 +19,19 @@
   const fmtDur = (m) => `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
 
   let trip, map, me, meMode = null, data = null, selectedDay = null, userPickedDay = false;
-  const pins = {}, lines = {};
+  const pins = {}, lines = {}, legLayers = {};
+  const LEGS = [['ida', 'Ida'], ['vuelta', 'Vuelta']];
+  const legOfDay = (id) => trip.days.find((d) => d.id === id)?.leg || 'ida';
+  const defaultDay = () => (trip.days.find((d) => d.date === arDate()) || trip.days.filter((d) => d.date <= arDate()).at(-1) || trip.days[0]).id;
+  let shownLeg = null;
+  // The map shows only the current leg: ida and vuelta share long stretches of road.
+  function showLeg() {
+    const leg = legOfDay(dayNow());
+    if (leg === shownLeg) return;
+    if (shownLeg) map.removeLayer(legLayers[shownLeg]);
+    legLayers[leg].addTo(map); shownLeg = leg;
+    if (!data?.hasPosition) map.fitBounds(L.latLngBounds(trip.days.filter((d) => (d.leg || 'ida') === leg).flatMap((d) => d.route.map(([lon, lat]) => [lat, lon]))), { padding: [40, 40] });
+  }
   $('status-avatar').innerHTML = F.face('Fito');
 
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 3000); }
@@ -31,19 +43,22 @@
     map = L.map('map', { zoomControl: false });
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Tiles &copy; Esri &middot; HERE, Garmin, &copy; OpenStreetMap' }).addTo(map);
-    const all = [];
     for (const d of trip.days) {
-      const ll = d.route.map(([lon, lat]) => [lat, lon]); all.push(...ll);
-      lines[d.id] = L.polyline(ll, { color: MUTED, weight: 5, lineCap: 'round' }).addTo(map);
+      const leg = d.leg || 'ida';
+      const group = legLayers[leg] || (legLayers[leg] = L.layerGroup());
+      const firstOfLeg = trip.days.find((x) => (x.leg || 'ida') === leg).id === d.id;
+      const ll = d.route.map(([lon, lat]) => [lat, lon]);
+      lines[d.id] = L.polyline(ll, { color: MUTED, weight: 5, lineCap: 'round' }).addTo(group);
       d.stops.forEach((s, i) => {
-        if (d.id !== trip.days[0].id && i === 0) return;
+        if (!firstOfLeg && i === 0) return;
         pins[s.id] = L.marker([s.lat, s.lon], { icon: pinIcon(s, false), title: s.name, alt: `${TYPE[s.type].label}: ${s.name}`, keyboard: true })
-          .bindPopup(`<strong>${esc(clean(s.name))}</strong>${esc(s.description)}`).addTo(map);
+          .bindPopup(`<strong>${esc(clean(s.name))}</strong>${esc(s.description)}`).addTo(group);
       });
     }
-    map.fitBounds(L.latLngBounds(all), { padding: [40, 40] });
+    showLeg();
   }
   function highlight() {
+    showLeg();
     const cur = dayNow();
     for (const [id, l] of Object.entries(lines)) { l.setStyle({ color: id === cur ? ACCENT : MUTED }); if (id === cur) l.bringToFront(); }
     const nextId = data?.next?.id;
@@ -66,7 +81,7 @@
 
   // ── Data helpers ──────────────────────────
   const planFor = (id) => data?.plans?.find((p) => p.dayId === id);
-  const dayNow = () => data?.dayId || (trip.days.find((d) => d.date === arDate()) || trip.days[0]).id;
+  const dayNow = () => data?.dayId || defaultDay();
   function hereStop() {
     const p = planFor(dayNow()); if (!p?.live) return null;
     const i = p.stops.findIndex((x, j) => j > 0 && x.state === 'here');
@@ -122,7 +137,17 @@
 
   // ── Ruta ──────────────────────────────────
   function renderDays() {
-    $('days').innerHTML = trip.days.map((d) => `<button class="segment" type="button" role="tab" data-day="${d.id}" aria-selected="${d.id === selectedDay}">${esc(d.label)}</button>`).join('');
+    const curLeg = legOfDay(selectedDay);
+    $('legs').innerHTML = LEGS.filter(([leg]) => trip.days.some((d) => (d.leg || 'ida') === leg))
+      .map(([leg, label]) => `<button class="segment" type="button" role="tab" data-leg="${leg}" aria-selected="${leg === curLeg}">${label}</button>`).join('');
+    $('legs').querySelectorAll('button').forEach((b) => b.onclick = () => {
+      if (b.dataset.leg === legOfDay(selectedDay)) return;
+      userPickedDay = true;
+      const days = trip.days.filter((d) => (d.leg || 'ida') === b.dataset.leg);
+      selectedDay = (days.find((d) => d.id === defaultDay()) || days[0]).id;
+      renderDays(); renderStops();
+    });
+    $('days').innerHTML = trip.days.filter((d) => (d.leg || 'ida') === curLeg).map((d) => `<button class="segment" type="button" role="tab" data-day="${d.id}" aria-selected="${d.id === selectedDay}">${esc(d.label)}</button>`).join('');
     $('days').querySelectorAll('button').forEach((b) => b.onclick = () => { userPickedDay = true; selectedDay = b.dataset.day; renderDays(); renderStops(); });
   }
   function renderStops() {

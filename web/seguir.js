@@ -18,7 +18,19 @@
   const key = new URLSearchParams(location.search).get('k');
 
   let trip, map, me, data = null, selectedDay = null, userPicked = false;
-  const lines = {}, pins = {};
+  const lines = {}, pins = {}, legLayers = {};
+  const LEGS = [['ida', 'Ida'], ['vuelta', 'Vuelta']];
+  const legOfDay = (id) => trip.days.find((d) => d.id === id)?.leg || 'ida';
+  const defaultDay = () => (trip.days.find((d) => d.date === arDate()) || trip.days.filter((d) => d.date <= arDate()).at(-1) || trip.days[0]).id;
+  let shownLeg = null;
+  // Only the selected leg is drawn: ida and vuelta share long stretches of road.
+  function showLeg() {
+    const leg = legOfDay(selectedDay);
+    if (leg === shownLeg) return;
+    if (shownLeg) map.removeLayer(legLayers[shownLeg]);
+    legLayers[leg].addTo(map); shownLeg = leg;
+    if (!data?.hasPosition) map.fitBounds(L.latLngBounds(trip.days.filter((d) => (d.leg || 'ida') === leg).flatMap((d) => d.route.map(([lon, lat]) => [lat, lon]))), { padding: [28, 28] });
+  }
 
   function fail(title, text) {
     document.querySelector('main').innerHTML = `<section class="card empty-state"><h1>${esc(title)}</h1><p>${esc(text)}</p></section>`;
@@ -30,17 +42,19 @@
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 16, attribution: 'Tiles &copy; Esri &middot; HERE, Garmin, &copy; OpenStreetMap',
     }).addTo(map);
-    const all = [];
     for (const d of trip.days) {
-      const ll = d.route.map(([lon, lat]) => [lat, lon]); all.push(...ll);
-      lines[d.id] = L.polyline(ll, { color: MUTED, weight: 5, lineCap: 'round' }).addTo(map);
+      const leg = d.leg || 'ida';
+      const group = legLayers[leg] || (legLayers[leg] = L.layerGroup());
+      const firstOfLeg = trip.days.find((x) => (x.leg || 'ida') === leg).id === d.id;
+      const ll = d.route.map(([lon, lat]) => [lat, lon]);
+      lines[d.id] = L.polyline(ll, { color: MUTED, weight: 5, lineCap: 'round' }).addTo(group);
       d.stops.forEach((s, i) => {
-        if (d.id !== trip.days[0].id && i === 0) return;
+        if (!firstOfLeg && i === 0) return;
         pins[s.id] = L.marker([s.lat, s.lon], { icon: pin(s, false), title: s.name, alt: `${TYPE[s.type].label}: ${s.name}` })
-          .bindPopup(`<strong>${esc(cleanName(s.name))}</strong>${esc(s.description)}`).addTo(map);
+          .bindPopup(`<strong>${esc(cleanName(s.name))}</strong>${esc(s.description)}`).addTo(group);
       });
     }
-    map.fitBounds(L.latLngBounds(all), { padding: [28, 28] });
+    showLeg();
   }
   const pin = (s, hl) => L.divIcon({ className: '', html: `<div class="pin${hl ? ' is-next' : ''}">${svg(TYPE[s.type].icon)}</div>`, iconSize: [36, 36], iconAnchor: [18, 18] });
 
@@ -48,7 +62,7 @@
   function stopById(id) { return trip.days.flatMap((d) => d.stops).find((s) => s.id === id); }
 
   function renderNow() {
-    const dayId = data.dayId || (trip.days.find((d) => d.date === arDate()) || trip.days[0]).id;
+    const dayId = data.dayId || defaultDay();
     const day = trip.days.find((d) => d.id === dayId);
     const plan = planFor(dayId);
     const here = plan?.live ? plan.stops.findIndex((x) => x.state === 'here') : -1;
@@ -94,8 +108,23 @@
   }
 
   function renderTabs() {
+    const legs = $('legs'); legs.innerHTML = '';
+    for (const [leg, label] of LEGS) {
+      if (!trip.days.some((d) => (d.leg || 'ida') === leg)) continue;
+      const b = document.createElement('button');
+      b.className = 'segment'; b.type = 'button'; b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(leg === legOfDay(selectedDay))); b.textContent = label;
+      b.onclick = () => {
+        if (leg === legOfDay(selectedDay)) return;
+        userPicked = true;
+        const days = trip.days.filter((d) => (d.leg || 'ida') === leg);
+        selectedDay = (days.find((d) => d.id === defaultDay()) || days[0]).id;
+        renderTabs(); renderTimeline(); highlight();
+      };
+      legs.appendChild(b);
+    }
     const wrap = $('tabs'); wrap.innerHTML = '';
-    for (const d of trip.days) {
+    for (const d of trip.days.filter((x) => (x.leg || 'ida') === legOfDay(selectedDay))) {
       const b = document.createElement('button');
       b.className = 'segment'; b.type = 'button'; b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(d.id === selectedDay)); b.textContent = d.label;
@@ -128,6 +157,7 @@
   }
 
   function highlight() {
+    showLeg();
     for (const [id, l] of Object.entries(lines)) { l.setStyle({ color: id === selectedDay ? ACCENT : MUTED }); if (id === selectedDay) l.bringToFront(); }
     const nextId = data?.next?.id;
     for (const [id, m] of Object.entries(pins)) m.setIcon(pin(stopById(id), id === nextId));
@@ -147,14 +177,14 @@
       if (r.status === 404) return fail('Este link ya no funciona', 'Pedile a Lean que te mande uno nuevo.');
       data = await r.json();
     } catch { $('signal').className = 'signal warn'; $('signal-text').textContent = 'Sin conexión, reintentando'; return; }
-    if (!userPicked) selectedDay = data.dayId || (trip.days.find((d) => d.date === arDate()) || trip.days[0]).id;
+    if (!userPicked) selectedDay = data.dayId || defaultDay();
     renderTabs(); renderNow(); renderSignal(); renderTimeline(); highlight(); renderMe();
   }
 
   async function main() {
     if (!key || !CFG.workerUrl) return fail('Falta el link completo', 'Abrí el link tal cual te lo mandó Lean.');
     trip = await (await fetch('trip.built.json', { cache: 'no-store' })).json();
-    selectedDay = (trip.days.find((d) => d.date === arDate()) || trip.days[0]).id;
+    selectedDay = defaultDay();
     initMap(); await poll(); setInterval(poll, 60e3);
   }
   main().catch((e) => { console.error(e); fail('No pude cargar el viaje', 'Probá recargar la página en un ratito.'); });

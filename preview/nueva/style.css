@@ -162,3 +162,4 @@ input:focus, textarea:focus { outline: 3px solid var(--accent); outline-offset: 
   .fito-tail, .fito-breathe, .eq i { animation: none; }
   .sheet, .toast { transition: none; }
 }
+#legs { margin-bottom: var(--s2); }
