@@ -15,14 +15,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           exec > >(tee diag-output.txt) 2>&1
-          for W in deploy.yml preview.yml; do
-            gh run list -R ${{ github.repository }} --workflow $W -L 1 --json headSha,status,conclusion -q '.[0] | "'$W' \(.headSha[0:7]) \(.status) \(.conclusion)"'
-          done
-          RID=$(gh run list -R ${{ github.repository }} --workflow preview.yml -L 1 --json databaseId -q '.[0].databaseId')
-          gh run view -R ${{ github.repository }} $RID --log | grep -E "karoo|BUILD (SUCCESSFUL|FAILED)|^e: |e: file|error:|What went wrong|##\\[error\\]|preview root|> Task :rutafito:compile" | sed -E 's/^.*Z //' | head -60
+          node geo.mjs
       - name: Save output to the branch
         if: always()
         run: |
           true
           git config user.name diag-bot; git config user.email diag@users.noreply.github.com
-          git add diag-output.txt && git commit -m "diag output 12 [skip ci]" && git push
+          git add diag-output.txt && git commit -m "diag output 13 [skip ci]" && git push
