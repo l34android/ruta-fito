@@ -36,5 +36,43 @@ v3: 565 km, 432 min driving, 2931 pts
   15:55  km 430	ACA Gorchs (RN3 km 143)
   18:06  km 564.9	La Plata
 ⚠️ 479 km without fuel before ACA Choele Choel (RN22 km 997)
-preview.yml 9af9445 completed failure
-##[error]Process completed with exit code 1.
+preview.yml 543f2d3 completed success
+d1: 575 km, 442 min driving, 3084 pts
+  10:30  km 0	Berisso
+  12:33  km 145.1	ACA Gorchs (RN3 km 143)
+  14:56  km 307	Balneario Municipal de Azul
+  16:18  km 354.6	ACA Olavarría
+  19:12  km 574.6	Villa Ventana
+d2: 706 km, 557 min driving, 3984 pts
+  09:00  km 0	Villa Ventana
+  10:20  km 105.8	ACA Bahía Blanca (Villa Bordeu)
+  12:35  km 266.6	ACA Río Colorado (RN22 km 859)
+  15:18  km 406.9	ACA Choele Choel (RN22 km 997)
+  17:33  km 550	Isla 58 · Villa Regina
+  20:17  km 704.7	Arroyito
+d3: 383 km, 309 min driving, 3734 pts
+  10:00  km 0	Arroyito
+  10:43  km 58.9	Plaza Huincul · Museo Carmen Funes
+  12:42  km 134.1	ACA Zapala (RN22 km 1401)
+  15:37  km 342.5	Vía Christi · Junín de los Andes
+  17:09  km 383.1	San Martín de los Andes
+v1: 308 km, 275 min driving, 3048 pts
+  15:00  km 0	San Martín de los Andes
+  17:43  km 157.4	Piedra del Águila (RN237)
+  20:00  km 308.1	Villa El Chocón
+v2: 737 km, 582 min driving, 4232 pts
+  08:00  km 0	Villa El Chocón
+  10:44  km 185.2	Isla 58 · Villa Regina
+  13:06  km 328.1	ACA Choele Choel (RN22 km 997)
+  15:10  km 468.9	ACA Río Colorado (RN22 km 859)
+  17:46  km 629.8	ACA Bahía Blanca (Villa Bordeu)
+  19:27  km 735.8	Villa Ventana
+v3: 565 km, 432 min driving, 2931 pts
+  09:30  km 0	Villa Ventana
+  12:09  km 219.9	ACA Olavarría
+  13:06  km 267.9	Balneario Municipal de Azul
+  15:55  km 430	ACA Gorchs (RN3 km 143)
+  18:06  km 564.9	La Plata
+⚠️ 479 km without fuel before ACA Choele Choel (RN22 km 997)
+^[[36;1msleep 5; curl -s -o /dev/null -w "preview root: %{http_code}\n" "https://ruta-fito-preview.ruta-fito-4e6efe.workers.dev/"^[[0m
+preview root: 200
