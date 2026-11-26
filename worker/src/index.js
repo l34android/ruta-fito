@@ -11,6 +11,14 @@ import {
 const days = trip.days.map((d) => ({ ...d, cum: cumulativeKm(d.route) }));
 const allStops = days.flatMap((d) => d.stops.map((s) => ({ ...s, dayId: d.id })));
 const HOME = days[0].stops[0];
+// The trip has two legs (ida / vuelta) whose routes overlap (Villa Ventana, RN22, RN3).
+// Only the current leg's days are candidates for position matching, fuel and arrival totals.
+export function legOf(now) {
+  const today = argentinaDate(now);
+  return (days.filter((d) => d.date <= today).at(-1) || days[0]).leg || 'ida';
+}
+const legDays = (now) => { const leg = legOf(now); return days.filter((d) => (d.leg || 'ida') === leg); };
+const fillOdo = (st, now) => (st.fuel?.leg || 'ida') === legOf(now) ? st.fuel.odo : 0;
 const HOME_HIDE_KM = 5;
 const TYPE_ICON = { salida: '🚩', descanso: '🌳', nafta: '⛽', noche: '🛏️', destino: '🏁' };
 const POS_WRITE_EVERY_MS = 90e3; // one KV write per sample keeps us well under the free daily quota
@@ -52,10 +60,11 @@ function shareUrl(env, share) {
 
 // One view of the trip that every consumer (cron, bot, app, family page) reads.
 export function buildView(st, now) {
-  const status = computeStatus({ pos: st.track.pos, history: st.track.history, days, now });
+  const ld = legDays(now);
+  const status = computeStatus({ pos: st.track.pos, history: st.track.history, days: ld, now });
   const planned = (d) => livePlan({ day: d, live: false });
   if (!status.hasPosition) {
-    return { status, plans: days.map(planned), fuel: fuelState({ days, dayId: days[0].id, currentKm: 0, lastFillOdo: st.fuel.odo }) };
+    return { status, plans: days.map(planned), fuel: fuelState({ days: ld, dayId: ld[0].id, currentKm: 0, lastFillOdo: fillOdo(st, now) }) };
   }
   const plans = days.map((d) => {
     if (d.id !== status.dayId) return planned(d);
@@ -68,7 +77,7 @@ export function buildView(st, now) {
     const s = allStops.find((x) => x.id === nextPlan.id);
     status.next = { ...status.next, id: s.id, name: s.name, type: s.type, remainingKm: Math.max(0, Math.round(s.km - status.km)), etaMin: Math.max(0, Math.round((nextPlan.eta - now) / 60e3)), etaClock: formatClock(nextPlan.eta) };
   }
-  const fuel = fuelState({ days, dayId: status.dayId, currentKm: status.km, lastFillOdo: st.fuel.odo });
+  const fuel = fuelState({ days: ld, dayId: status.dayId, currentKm: status.km, lastFillOdo: fillOdo(st, now) });
   return { status, plans, plan, fuel };
 }
 
@@ -116,7 +125,7 @@ function statusText(view) {
 const famText = {
   departed: (day, plan) => `Lean y Fito salieron de ${esc(day.stops[0].name)} a las ${formatClock(Date.now())}. Llegada estimada a ${esc(day.stops.at(-1).name)}: ${formatClock(plan.endEta)}.`,
   arrived: (s, ts) => s.type === 'destino'
-    ? `¡Llegaron a ${esc(s.name.replace(/ \(destino\)$/, ''))}! Fueron ${Math.round(days.reduce((a, d) => a + d.totalKm, 0))} km. Gracias por acompañarlos.`
+    ? `¡Llegaron a ${esc(s.name.replace(/ \(destino\)$/, ''))}! Fueron ${Math.round(legDays(Date.now()).reduce((a, d) => a + d.totalKm, 0))} km. Gracias por acompañarlos.`
     : s.type === 'noche'
       ? `Llegaron a ${esc(s.name)} a las ${formatClock(ts)}. Hoy hacen noche acá; mañana sigue la ruta.`
       : `Pararon en ${esc(s.name)} (${formatClock(ts)}). ${s.type === 'descanso' ? 'Fito está estirando las patas.' : 'Cargando nafta.'}`,
@@ -136,7 +145,7 @@ async function onLocation(env, st, msg) {
 
   const pos = { lat: msg.location.latitude, lon: msg.location.longitude, ts };
   const p = [pos.lon, pos.lat];
-  const { day, proj } = pickDay(p, days, argentinaDate(ts));
+  const { day, proj } = pickDay(p, legDays(ts), argentinaDate(ts));
   const history = (st.track.history || []).concat({ km: proj.km, ts, day: day.id }).slice(-HISTORY_MAX);
   const writes = [];
   let flagsChanged = false;
@@ -152,8 +161,8 @@ async function onLocation(env, st, msg) {
       for (const ev of r.events) {
         if (ev.type !== 'arrived') continue;
         if (ev.stop.fuel) {
-          let offset = 0; for (const d of days) { if (d.id === day.id) break; offset += d.totalKm; }
-          st.fuel = { odo: Math.round(offset + ev.stop.km), at: ev.ts, stopId: ev.stop.id };
+          let offset = 0; for (const d of legDays(ts)) { if (d.id === day.id) break; offset += d.totalKm; }
+          st.fuel = { odo: Math.round(offset + ev.stop.km), at: ev.ts, stopId: ev.stop.id, leg: day.leg || 'ida' };
           writes.push(putJSON(env, 'fuel', st.fuel));
         }
         await familySend(env, st, famText.arrived(ev.stop, ev.ts));
@@ -223,7 +232,7 @@ async function handleUpdate(env, update) {
     const extra = view.status.next ? stopButtons(env, allStops.find((s) => s.id === view.status.next.id)) : {};
     return send(env, chatId, statusText(view), extra);
   }
-  if (cmd === '/plan') return send(env, chatId, days.map(dayPlanText).join('\n\n'));
+  if (cmd === '/plan') return send(env, chatId, legDays(Date.now()).map(dayPlanText).join('\n\n'));
   if (cmd === '/ruta') return send(env, chatId, env.PAGES_URL ? env.PAGES_URL : 'La webapp todavía no tiene URL configurada.');
   if (cmd === '/compartir') {
     if (!st.share?.token || arg === 'nuevo') { st.share = { token: crypto.randomUUID().replace(/-/g, '') }; await putJSON(env, 'share', st.share); }

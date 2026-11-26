@@ -220,3 +220,4 @@ p, dl, dd, ol { margin: 0; }
 .timeline .row.is-visited .type-tile { color: var(--accent); }
 .empty-state { padding: var(--s6); text-align: center; color: var(--text-2); }
 .empty-state h1 { color: var(--text); font-size: var(--t-h2); margin-bottom: var(--s2); }
+#legs { margin-bottom: var(--s2); }

@@ -19,7 +19,11 @@
   const fmtDuration = (min) => `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
 
   let trip, map, meMarker, follow = true, status = null, selectedDay = 'd1', userPickedDay = false;
-  const stopMarkers = {}, routeLines = {};
+  const stopMarkers = {}, routeLines = {}, legLayers = {};
+  const LEGS = [['ida', 'Ida'], ['vuelta', 'Vuelta']];
+  const legOfDay = (id) => trip.days.find((d) => d.id === id)?.leg || 'ida';
+  // Today's day, or the last one already started (e.g. a rest day in between), or the first.
+  const defaultDay = () => (trip.days.find((d) => d.date === arDate()) || trip.days.filter((d) => d.date <= arDate()).at(-1) || trip.days[0]).id;
 
   function toast(msg) {
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -35,25 +39,40 @@
     map = L.map('map', { zoomControl: true, preferCanvas: false });
     const esri = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
     L.tileLayer(esri + 'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Tiles &copy; Esri &middot; HERE, Garmin, &copy; OpenStreetMap' }).addTo(map);
-    const all = [];
     for (const d of trip.days) {
+      const leg = d.leg || 'ida';
+      const group = legLayers[leg] || (legLayers[leg] = L.layerGroup());
       const latlngs = d.route.map(([lon, lat]) => [lat, lon]);
-      all.push(...latlngs);
-      routeLines[d.id] = L.polyline(latlngs, { color: MUTED, weight: 5, opacity: 1, lineCap: 'round' }).addTo(map);
+      routeLines[d.id] = L.polyline(latlngs, { color: MUTED, weight: 5, opacity: 1, lineCap: 'round' }).addTo(group);
+      const firstOfLeg = trip.days.find((x) => (x.leg || 'ida') === leg).id === d.id;
       d.stops.forEach((s, i) => {
-        if (d.id !== trip.days[0].id && i === 0) return; // shared with the previous day's overnight stop
+        if (!firstOfLeg && i === 0) return; // shared with the previous day's overnight stop
         const m = L.marker([s.lat, s.lon], { icon: pinIcon(s, false), title: s.name, alt: `${TYPE[s.type].label}: ${s.name}`, keyboard: true })
           .bindPopup(`<strong>${esc(s.name)}</strong>${esc(d.label)} · ${esc(s.plannedArrival)} · km ${Math.round(s.km)}<br>${esc(s.description)}<br><a href="${waze(s)}" target="_blank" rel="noopener">Abrir en Waze</a>`)
-          .addTo(map);
+          .addTo(group);
         stopMarkers[s.id] = { marker: m, stop: s };
       });
     }
-    map.fitBounds(L.latLngBounds(all), { padding: [32, 32] });
+    showLeg(true);
     map.on('dragstart', () => setFollow(false));
     highlightRoute();
   }
 
+  // Only the selected leg is drawn: ida and vuelta share long stretches of road.
+  let shownLeg = null;
+  function showLeg(fit) {
+    const leg = legOfDay(selectedDay);
+    if (leg === shownLeg) return;
+    if (shownLeg) map.removeLayer(legLayers[shownLeg]);
+    legLayers[leg].addTo(map); shownLeg = leg;
+    if (fit || !status?.hasPosition) {
+      const pts = trip.days.filter((d) => (d.leg || 'ida') === leg).flatMap((d) => d.route.map(([lon, lat]) => [lat, lon]));
+      map.fitBounds(L.latLngBounds(pts), { padding: [32, 32] });
+    }
+  }
+
   function highlightRoute() {
+    showLeg(false);
     for (const [id, line] of Object.entries(routeLines)) {
       line.setStyle({ color: id === selectedDay ? ACCENT : MUTED });
       if (id === selectedDay) line.bringToFront();
@@ -66,8 +85,24 @@
   }
 
   function renderTabs() {
+    const legs = $('legs'); legs.innerHTML = '';
+    for (const [leg, label] of LEGS) {
+      if (!trip.days.some((d) => (d.leg || 'ida') === leg)) continue;
+      const b = document.createElement('button');
+      b.className = 'segment'; b.type = 'button'; b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(leg === legOfDay(selectedDay)));
+      b.textContent = label;
+      b.onclick = () => {
+        if (leg === legOfDay(selectedDay)) return;
+        userPickedDay = true;
+        const days = trip.days.filter((d) => (d.leg || 'ida') === leg);
+        selectedDay = (days.find((d) => d.id === defaultDay()) || days[0]).id;
+        renderTabs(); renderStops(); highlightRoute();
+      };
+      legs.appendChild(b);
+    }
     const wrap = $('tabs'); wrap.innerHTML = '';
-    for (const d of trip.days) {
+    for (const d of trip.days.filter((x) => (x.leg || 'ida') === legOfDay(selectedDay))) {
       const b = document.createElement('button');
       b.className = 'segment'; b.type = 'button'; b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(d.id === selectedDay));
@@ -211,7 +246,7 @@
 
   async function main() {
     trip = await (await fetch('trip.built.json', { cache: 'no-store' })).json();
-    const today = trip.days.find((d) => d.date === arDate()); if (today) selectedDay = today.id;
+    selectedDay = defaultDay();
     initMap(); renderTabs(); renderStops(); renderNext();
     $('follow').onclick = () => setFollow(!follow);
     $('copy-waze').onclick = async () => {
